@@ -5,10 +5,15 @@ import { fetchMatchHistory, fetchRanking, saveMatchResult } from './client'
 export const RANKING_QUERY_KEY = ['ranking']
 export const HISTORY_QUERY_KEY = ['history']
 
-export function useRankingQuery(page: number, limit = 5) {
+export function useRankingQuery(
+  page: number,
+  limit = 5,
+  gameSessionTime?: number,
+  enemySpawnTime?: number,
+) {
   return useQuery({
-    queryKey: [...RANKING_QUERY_KEY, page, limit],
-    queryFn: () => fetchRanking(page, limit),
+    queryKey: [...RANKING_QUERY_KEY, page, limit, gameSessionTime, enemySpawnTime],
+    queryFn: () => fetchRanking(page, limit, gameSessionTime, enemySpawnTime),
     staleTime: 5000,
     retry: 1,
   })

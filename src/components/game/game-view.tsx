@@ -1,4 +1,4 @@
-import { Home, Navigation, Play, RotateCcw, Target, Volume2, VolumeX } from 'lucide-react'
+import { Home, Navigation, Play, RotateCcw, Target } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { useSaveMatchMutation } from '@/api/queries'
@@ -9,16 +9,9 @@ import type { GameOptions, MatchHistoryEntry } from '@/types/game'
 interface GameViewProps {
   config: GameOptions
   onExitToMenu: () => void
-  isMuted: boolean
-  toggleMute: () => void
 }
 
-export const GameView: React.FC<GameViewProps> = ({
-  config,
-  onExitToMenu,
-  isMuted,
-  toggleMute,
-}) => {
+export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
   // Game state
   const [playerHp, setPlayerHp] = useState(100)
   const [maxHp] = useState(100)
@@ -116,7 +109,8 @@ export const GameView: React.FC<GameViewProps> = ({
 
     const newMatch: MatchHistoryEntry = {
       id: `match-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      playerName: 'Captain Player',
+      playerId: 'player',
+      playerName: 'Flapjack',
       score: score,
       duration: Math.max(1, timePlayed),
       date: new Date().toISOString(),
@@ -216,21 +210,8 @@ export const GameView: React.FC<GameViewProps> = ({
           </div>
         </div>
 
-        {/* Right: Mute & Pause Controls */}
+        {/* Right: Pause Control */}
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleMute}
-            className="h-8 w-8 border-amber-900/60 text-secondary"
-          >
-            {isMuted ? (
-              <VolumeX className="h-4 w-4 text-red-400" />
-            ) : (
-              <Volume2 className="h-4 w-4 text-secondary" />
-            )}
-          </Button>
-
           <Button
             variant="outline"
             size="sm"

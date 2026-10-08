@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { GameOptions } from '@/types/game'
 
+export const SESSION_TIME_OPTIONS = [60, 90, 120, 180] as const
+export const SPAWN_TIME_OPTIONS = [1, 3, 5] as const
+
 export const AVAILABLE_SHIPS = [
   'ship_1.png',
   'ship_2.png',
@@ -12,8 +15,8 @@ export const AVAILABLE_SHIPS = [
 ]
 
 export const DEFAULT_OPTIONS: GameOptions = {
-  gameSessionTime: 120, // 2 minutes default (between 60 and 180)
-  enemySpawnTime: 3.0, // 3 seconds default
+  gameSessionTime: 120, // 120s default (options: 60, 90, 120, 180)
+  enemySpawnTime: 3, // 3s default (options: 1, 3, 5)
   selectedShip: 'ship_1.png',
 }
 
@@ -34,16 +37,22 @@ export const useOptionsStore = create<OptionsState>()(
       options: { ...DEFAULT_OPTIONS },
 
       setGameSessionTime: (time: number) => {
-        const clamped = Math.max(60, Math.min(180, time))
+        // Find exact or closest valid session time
+        const validTime = SESSION_TIME_OPTIONS.reduce((prev, curr) =>
+          Math.abs(curr - time) < Math.abs(prev - time) ? curr : prev,
+        )
         set((state) => ({
-          options: { ...state.options, gameSessionTime: clamped },
+          options: { ...state.options, gameSessionTime: validTime },
         }))
       },
 
       setEnemySpawnTime: (time: number) => {
-        const clamped = Math.max(0.5, Math.min(15.0, Number(time.toFixed(1))))
+        // Find exact or closest valid spawn time
+        const validTime = SPAWN_TIME_OPTIONS.reduce((prev, curr) =>
+          Math.abs(curr - time) < Math.abs(prev - time) ? curr : prev,
+        )
         set((state) => ({
-          options: { ...state.options, enemySpawnTime: clamped },
+          options: { ...state.options, enemySpawnTime: validTime },
         }))
       },
 

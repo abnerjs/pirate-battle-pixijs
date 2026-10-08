@@ -1,4 +1,5 @@
 import type React from 'react'
+import { RoundedButton } from '@/components/ui/rounded-button'
 import { soundManager } from '@/lib/sound-manager'
 import { cn } from '@/lib/utils'
 
@@ -29,33 +30,17 @@ export const WoodenButton: React.FC<WoodenButtonProps> = ({
 
   if (variant === 'round') {
     return (
-      <button
-        type="button"
-        onClick={handleClick}
-        onMouseEnter={handleMouseEnter}
-        className={cn(
-          'relative inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-90 active:opacity-75 disabled:opacity-50 disabled:pointer-events-none focus:outline-none',
-          size === 'sm' ? 'p-2 text-xs' : 'p-3 text-sm',
-          className,
-        )}
+      <RoundedButton
+        size={size}
+        className={className}
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
         {...props}
       >
-        <img
-          src="/assets/png/default/ui/controls/button_round_normal.png"
-          alt="button"
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-        />
-        <span className="relative z-10 text-secondary font-bold flex items-center justify-center">
-          {children}
-        </span>
-      </button>
+        {children}
+      </RoundedButton>
     )
   }
-
-  const bgImage =
-    variant === 'primary'
-      ? '/assets/png/default/ui/menu/button_primary_normal.png'
-      : '/assets/png/default/ui/menu/button_secondary_normal.png'
 
   const sizeClasses =
     size === 'sm'
@@ -74,26 +59,99 @@ export const WoodenButton: React.FC<WoodenButtonProps> = ({
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       className={cn(
-        'relative inline-flex items-center justify-center font-sans uppercase tracking-widest transition-opacity hover:opacity-95 active:opacity-85 disabled:opacity-50 disabled:pointer-events-none focus:outline-none select-none min-w-[140px]',
+        'group relative inline-flex items-center justify-center font-sans uppercase tracking-widest focus:outline-none select-none min-w-[140px] disabled:pointer-events-none',
         sizeClasses,
         className,
       )}
       {...props}
     >
-      {/* 9-Slice Background Frame Asset (Non-overlapping 32px/36px corner slices, 1:1 ratio) */}
-      <div
-        className="absolute inset-0 pointer-events-none z-0"
-        style={{
-          borderStyle: 'solid',
-          borderWidth: '16px 24px',
-          borderImageSource: `url('${bgImage}')`,
-          borderImageSlice: '32 36 32 36 fill',
-          borderImageRepeat: 'stretch',
-        }}
-      />
+      {variant === 'primary' ? (
+        <>
+          {/* Primary Normal */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0 group-hover:hidden group-active:hidden group-disabled:hidden"
+            style={{
+              borderStyle: 'solid',
+              borderWidth: '16px 24px',
+              borderImageSource: "url('/assets/png/default/ui/menu/button_primary_normal.png')",
+              borderImageSlice: '32 36 32 36 fill',
+              borderImageRepeat: 'stretch',
+            }}
+          />
+          {/* Primary Hover */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0 hidden group-hover:block group-active:hidden group-disabled:hidden"
+            style={{
+              borderStyle: 'solid',
+              borderWidth: '16px 24px',
+              borderImageSource: "url('/assets/png/default/ui/menu/button_primary_hover.png')",
+              borderImageSlice: '32 36 32 36 fill',
+              borderImageRepeat: 'stretch',
+            }}
+          />
+          {/* Primary Pressed */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0 hidden group-active:block group-disabled:hidden"
+            style={{
+              borderStyle: 'solid',
+              borderWidth: '16px 24px',
+              borderImageSource: "url('/assets/png/default/ui/menu/button_primary_pressed.png')",
+              borderImageSlice: '32 36 32 36 fill',
+              borderImageRepeat: 'stretch',
+            }}
+          />
+          {/* Primary Disabled */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0 hidden group-disabled:block"
+            style={{
+              borderStyle: 'solid',
+              borderWidth: '16px 24px',
+              borderImageSource: "url('/assets/png/default/ui/menu/button_primary_disabled.png')",
+              borderImageSlice: '32 36 32 36 fill',
+              borderImageRepeat: 'stretch',
+            }}
+          />
+        </>
+      ) : (
+        <>
+          {/* Secondary Normal */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0 group-hover:hidden group-active:hidden group-disabled:hidden"
+            style={{
+              borderStyle: 'solid',
+              borderWidth: '16px 24px',
+              borderImageSource: "url('/assets/png/default/ui/menu/button_secondary_normal.png')",
+              borderImageSlice: '32 36 32 36 fill',
+              borderImageRepeat: 'stretch',
+            }}
+          />
+          {/* Secondary Hover & Pressed (both use pressed image) */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0 hidden group-hover:block group-active:block group-disabled:hidden"
+            style={{
+              borderStyle: 'solid',
+              borderWidth: '16px 24px',
+              borderImageSource: "url('/assets/png/default/ui/menu/button_secondary_pressed.png')",
+              borderImageSlice: '32 36 32 36 fill',
+              borderImageRepeat: 'stretch',
+            }}
+          />
+          {/* Secondary Disabled */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0 hidden group-disabled:block opacity-50"
+            style={{
+              borderStyle: 'solid',
+              borderWidth: '16px 24px',
+              borderImageSource: "url('/assets/png/default/ui/menu/button_secondary_normal.png')",
+              borderImageSlice: '32 36 32 36 fill',
+              borderImageRepeat: 'stretch',
+            }}
+          />
+        </>
+      )}
       <span
         className={cn(
-          'relative z-10 text-center flex items-center justify-center gap-2 font-black',
+          'relative z-10 text-center flex items-center justify-center gap-2 font-black group-disabled:opacity-50',
           textColors,
         )}
       >

@@ -10,8 +10,6 @@ import { OptionsScreen } from './options-screen'
 
 interface MainMenuProps {
   onStartGame: (snapshotConfig: GameOptions) => void
-  isMuted: boolean
-  toggleMute: () => void
 }
 
 export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {

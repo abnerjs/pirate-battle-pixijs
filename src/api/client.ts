@@ -9,9 +9,18 @@ export const apiClient = axios.create({
   timeout: 10000,
 })
 
-export async function fetchRanking(page = 1, limit = 5): Promise<PaginatedResponse<RankingEntry>> {
+export async function fetchRanking(
+  page = 1,
+  limit = 5,
+  gameSessionTime?: number,
+  enemySpawnTime?: number,
+): Promise<PaginatedResponse<RankingEntry>> {
+  const params: Record<string, number> = { page, limit }
+  if (gameSessionTime !== undefined) params.gameSessionTime = gameSessionTime
+  if (enemySpawnTime !== undefined) params.enemySpawnTime = enemySpawnTime
+
   const response = await apiClient.get<PaginatedResponse<RankingEntry>>('/api/ranking', {
-    params: { page, limit },
+    params,
   })
   return response.data
 }

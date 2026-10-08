@@ -21,25 +21,22 @@ function renderApp() {
 async function enableMocking() {
   try {
     const { worker } = await import('./mocks/browser')
-    await Promise.race([
-      worker.start({
-        onUnhandledRequest: 'bypass',
-        serviceWorker: {
-          url: '/mockServiceWorker.js',
-        },
-      }),
-      new Promise((resolve) => setTimeout(resolve, 800)),
-    ])
-    console.log('[MSW] Worker initialized successfully')
+    await worker.start({
+      onUnhandledRequest: 'bypass',
+      serviceWorker: {
+        url: '/mockServiceWorker.js',
+      },
+    })
+    console.log('[MSW] Mocking enabled & worker active')
   } catch (error) {
     console.error('[MSW] Failed to start worker:', error)
   }
 }
 
-// Fallback timer ensures React mounts within 1 second even if ServiceWorker activation hangs on refresh
+// Fallback timer ensures React mounts within 3 seconds if ServiceWorker activation stalls
 const fallbackTimer = setTimeout(() => {
   renderApp()
-}, 1000)
+}, 3000)
 
 enableMocking().finally(() => {
   clearTimeout(fallbackTimer)

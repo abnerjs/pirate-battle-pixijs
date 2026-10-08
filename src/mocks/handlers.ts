@@ -3,8 +3,8 @@ import { useNetworkStore } from '@/lib/network-store'
 import type { MatchHistoryEntry, RankingEntry } from '@/types/game'
 import { INITIAL_HISTORY_FIXTURES, INITIAL_RANKING_FIXTURES } from './fixtures'
 
-const RANKING_KEY = 'pirate_battle_ranking_db_v1'
-const HISTORY_KEY = 'pirate_battle_history_db_v1'
+const RANKING_KEY = 'pirate_battle_ranking_db_v3'
+const HISTORY_KEY = 'pirate_battle_history_db_v3'
 
 function getStoredRanking(): RankingEntry[] {
   try {
@@ -58,14 +58,11 @@ async function applyNetworkConditions() {
   }
 
   if (scenario === 'error_500') {
-    throw new HttpResponse(JSON.stringify({ message: 'Internal Server Error (Simulated)' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return HttpResponse.json({ message: 'Internal Server Error (Simulated)' }, { status: 500 })
   }
 
   if (scenario === 'timeout') {
-    return HttpResponse.error()
+    return HttpResponse.json({ message: 'Gateway Timeout (Simulated)' }, { status: 504 })
   }
 
   return null
@@ -91,8 +88,20 @@ export const handlers = [
     const url = new URL(request.url)
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10))
     const limit = Math.max(1, parseInt(url.searchParams.get('limit') || '5', 10))
+    const gameSessionTimeParam = url.searchParams.get('gameSessionTime')
+    const enemySpawnTimeParam = url.searchParams.get('enemySpawnTime')
 
-    const ranking = getStoredRanking()
+    let ranking = getStoredRanking()
+
+    if (gameSessionTimeParam) {
+      const sessionT = parseInt(gameSessionTimeParam, 10)
+      ranking = ranking.filter((r) => r.config.gameSessionTime === sessionT)
+    }
+
+    if (enemySpawnTimeParam) {
+      const spawnT = parseFloat(enemySpawnTimeParam)
+      ranking = ranking.filter((r) => r.config.enemySpawnTime === spawnT)
+    }
 
     // Sort deterministically: score desc, duration desc, date asc
     ranking.sort((a, b) => {
@@ -166,7 +175,7 @@ export const handlers = [
 
     const body = (await request.json()) as Partial<MatchHistoryEntry>
 
-    if (!body || !body.id) {
+    if (!body?.id) {
       return HttpResponse.json({ message: 'Invalid payload: missing id' }, { status: 400 })
     }
 
@@ -181,12 +190,13 @@ export const handlers = [
 
     const newHistoryEntry: MatchHistoryEntry = {
       id: body.id,
-      playerName: body.playerName || 'Captain Player',
+      playerId: body.playerId || 'player',
+      playerName: body.playerName || 'Flapjack',
       score: body.score ?? 0,
       duration: body.duration ?? 0,
       date: body.date || new Date().toISOString(),
       endReason: body.endReason || 'time_up',
-      config: body.config || { gameSessionTime: 120, enemySpawnTime: 3.0 },
+      config: body.config || { gameSessionTime: 120, enemySpawnTime: 3 },
       status: 'confirmed',
     }
 
@@ -196,6 +206,7 @@ export const handlers = [
     // Also add to ranking entry
     const newRankEntry: RankingEntry = {
       id: body.id,
+      playerId: newHistoryEntry.playerId,
       playerName: newHistoryEntry.playerName,
       score: newHistoryEntry.score,
       duration: newHistoryEntry.duration,

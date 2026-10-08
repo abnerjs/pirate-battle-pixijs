@@ -12,9 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
 import { DEFAULT_OPTIONS, useOptionsStore } from '@/lib/options-store'
 
 interface OptionsModalProps {
@@ -113,83 +111,54 @@ export const OptionsModal: React.FC<OptionsModalProps> = ({ open, onOpenChange }
           {/* Option 1: Game Session Time */}
           <div className="space-y-2 bg-slate-900/80 p-3.5 rounded-lg border border-amber-950/40">
             <div className="flex items-center justify-between">
-              <Label htmlFor="session-time" className="text-amber-300 font-bold text-xs">
-                Game Session Time
-              </Label>
+              <Label className="text-amber-300 font-bold text-xs">Game session time</Label>
               <Badge variant="gold" className="font-mono text-xs">
                 {gameSessionTime}s ({Math.floor(gameSessionTime / 60)}m {gameSessionTime % 60}s)
               </Badge>
             </div>
             <p className="text-[11px] text-slate-400">
-              Active combat session duration (Limits: 60s - 180s).
+              Active combat session duration options: 60s, 90s, 120s, 180s.
             </p>
-            <div className="flex items-center gap-3">
-              <Slider
-                value={[gameSessionTime]}
-                min={60}
-                max={180}
-                step={5}
-                onValueChange={(vals) => {
-                  setSessionTime(vals[0])
-                  validate(vals[0], enemySpawnTime)
-                }}
-                className="flex-1"
-              />
-              <Input
-                id="session-time"
-                type="number"
-                min={60}
-                max={180}
-                value={gameSessionTime}
-                onChange={(e) => {
-                  const val = Number(e.target.value)
-                  setSessionTime(val)
-                  validate(val, enemySpawnTime)
-                }}
-                className="w-20 font-mono text-center border-amber-900/60 bg-slate-950 text-amber-300 font-bold h-8 text-xs"
-              />
+            <div className="flex items-center gap-2 pt-1">
+              {[60, 90, 120, 180].map((val) => (
+                <Button
+                  key={val}
+                  type="button"
+                  size="sm"
+                  variant={gameSessionTime === val ? 'pirate' : 'outline'}
+                  onClick={() => setSessionTime(val)}
+                  className="flex-1 text-xs h-8"
+                >
+                  {val}s
+                </Button>
+              ))}
             </div>
           </div>
 
           {/* Option 2: Enemy Spawn Time */}
           <div className="space-y-2 bg-slate-900/80 p-3.5 rounded-lg border border-amber-950/40">
             <div className="flex items-center justify-between">
-              <Label htmlFor="spawn-time" className="text-amber-300 font-bold text-xs">
-                Enemy Spawn Time
-              </Label>
+              <Label className="text-amber-300 font-bold text-xs">Enemy Spawn Time</Label>
               <Badge variant="gold" className="font-mono text-xs">
-                Every {enemySpawnTime.toFixed(1)}s
+                Every {enemySpawnTime}s
               </Badge>
             </div>
             <p className="text-[11px] text-slate-400">
-              Interval between enemy spawns (Limit: positive number &gt; 0s, max 15s).
+              Interval between enemy spawns options: 1s, 3s, 5s.
             </p>
-            <div className="flex items-center gap-3">
-              <Slider
-                value={[enemySpawnTime]}
-                min={0.5}
-                max={10.0}
-                step={0.5}
-                onValueChange={(vals) => {
-                  setSpawnTime(vals[0])
-                  validate(gameSessionTime, vals[0])
-                }}
-                className="flex-1"
-              />
-              <Input
-                id="spawn-time"
-                type="number"
-                min={0.5}
-                max={15}
-                step={0.5}
-                value={enemySpawnTime}
-                onChange={(e) => {
-                  const val = Number(e.target.value)
-                  setSpawnTime(val)
-                  validate(gameSessionTime, val)
-                }}
-                className="w-20 font-mono text-center border-amber-900/60 bg-slate-950 text-amber-300 font-bold h-8 text-xs"
-              />
+            <div className="flex items-center gap-2 pt-1">
+              {[1, 3, 5].map((val) => (
+                <Button
+                  key={val}
+                  type="button"
+                  size="sm"
+                  variant={enemySpawnTime === val ? 'pirate' : 'outline'}
+                  onClick={() => setSpawnTime(val)}
+                  className="flex-1 text-xs h-8"
+                >
+                  {val}s
+                </Button>
+              ))}
             </div>
           </div>
         </div>

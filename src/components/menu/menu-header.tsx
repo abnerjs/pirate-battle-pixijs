@@ -1,13 +1,6 @@
-import { Volume2, VolumeX } from 'lucide-react'
 import type React from 'react'
-import { Button } from '@/components/ui/button'
 
-interface MenuHeaderProps {
-  isMuted: boolean
-  toggleMute: () => void
-}
-
-export const MenuHeader: React.FC<MenuHeaderProps> = ({ isMuted, toggleMute }) => {
+export const MenuHeader: React.FC = () => {
   return (
     <header className="relative w-full flex items-center justify-between py-2 px-4 border-b border-amber-900/40 bg-slate-950/90 backdrop-blur-md shrink-0">
       {/* Left: Jungle Gaming Logo Asset */}
@@ -34,22 +27,8 @@ export const MenuHeader: React.FC<MenuHeaderProps> = ({ isMuted, toggleMute }) =
         />
       </div>
 
-      {/* Right: Sound Control Button */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleMute}
-          className="h-8 px-2.5 text-xs border-amber-900/60 bg-slate-900 text-secondary hover:bg-amber-950/50"
-        >
-          {isMuted ? (
-            <VolumeX className="h-4 w-4 text-red-400 mr-1" />
-          ) : (
-            <Volume2 className="h-4 w-4 text-secondary mr-1" />
-          )}
-          <span className="hidden sm:inline">{isMuted ? 'Muted' : 'Sound On'}</span>
-        </Button>
-      </div>
+      {/* Right Spacer */}
+      <div className="w-8 sm:w-16" />
     </header>
   )
 }

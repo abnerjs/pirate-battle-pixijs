@@ -6,6 +6,7 @@ export interface GameOptions {
 
 export interface RankingEntry {
   id: string
+  playerId: string
   playerName: string
   score: number
   duration: number // seconds played
@@ -15,6 +16,7 @@ export interface RankingEntry {
 
 export interface MatchHistoryEntry {
   id: string
+  playerId: string
   playerName: string
   score: number
   duration: number
