@@ -598,10 +598,7 @@
           },
           "clip_axis": "x",
           "clip_origin": "left",
-          "draw_order": [
-            "frame",
-            "fill"
-          ]
+          "draw_order": ["frame", "fill"]
         }
       }
     },
@@ -648,10 +645,7 @@
           },
           "clip_axis": "x",
           "clip_origin": "left",
-          "draw_order": [
-            "frame",
-            "fill"
-          ]
+          "draw_order": ["frame", "fill"]
         }
       }
     },
@@ -698,10 +692,7 @@
           },
           "clip_axis": "x",
           "clip_origin": "left",
-          "draw_order": [
-            "frame",
-            "fill"
-          ]
+          "draw_order": ["frame", "fill"]
         }
       }
     },
@@ -748,10 +739,7 @@
           },
           "clip_axis": "x",
           "clip_origin": "left",
-          "draw_order": [
-            "frame",
-            "fill"
-          ]
+          "draw_order": ["frame", "fill"]
         }
       }
     },
@@ -1308,10 +1296,7 @@
           },
           "clip_axis": "x",
           "clip_origin": "left",
-          "draw_order": [
-            "frame",
-            "fill"
-          ]
+          "draw_order": ["frame", "fill"]
         }
       }
     },
@@ -1358,10 +1343,7 @@
           },
           "clip_axis": "x",
           "clip_origin": "left",
-          "draw_order": [
-            "frame",
-            "fill"
-          ]
+          "draw_order": ["frame", "fill"]
         }
       }
     },
@@ -1408,10 +1390,7 @@
           },
           "clip_axis": "x",
           "clip_origin": "left",
-          "draw_order": [
-            "frame",
-            "fill"
-          ]
+          "draw_order": ["frame", "fill"]
         }
       }
     }

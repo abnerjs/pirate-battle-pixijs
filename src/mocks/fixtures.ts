@@ -1,0 +1,93 @@
+import type { MatchHistoryEntry, RankingEntry } from '@/types/game'
+
+export const INITIAL_RANKING_FIXTURES: RankingEntry[] = [
+  {
+    id: 'rank-1',
+    playerName: 'Captain Blackbeard',
+    score: 42,
+    duration: 180,
+    date: '2026-10-07T14:30:00Z',
+    config: { gameSessionTime: 180, enemySpawnTime: 2.0 },
+  },
+  {
+    id: 'rank-2',
+    playerName: 'Hector Barbossa',
+    score: 35,
+    duration: 120,
+    date: '2026-10-07T16:15:00Z',
+    config: { gameSessionTime: 120, enemySpawnTime: 3.0 },
+  },
+  {
+    id: 'rank-3',
+    playerName: 'Jack Sparrow',
+    score: 29,
+    duration: 120,
+    date: '2026-10-08T09:00:00Z',
+    config: { gameSessionTime: 120, enemySpawnTime: 2.5 },
+  },
+  {
+    id: 'rank-4',
+    playerName: 'Anne Bonny',
+    score: 24,
+    duration: 90,
+    date: '2026-10-06T11:20:00Z',
+    config: { gameSessionTime: 90, enemySpawnTime: 3.0 },
+  },
+  {
+    id: 'rank-5',
+    playerName: 'Calico Jack',
+    score: 18,
+    duration: 60,
+    date: '2026-10-05T18:45:00Z',
+    config: { gameSessionTime: 60, enemySpawnTime: 4.0 },
+  },
+  {
+    id: 'rank-6',
+    playerName: 'Henry Morgan',
+    score: 15,
+    duration: 120,
+    date: '2026-10-04T12:00:00Z',
+    config: { gameSessionTime: 120, enemySpawnTime: 3.5 },
+  },
+  {
+    id: 'rank-7',
+    playerName: "Grace O'Malley",
+    score: 12,
+    duration: 90,
+    date: '2026-10-03T15:10:00Z',
+    config: { gameSessionTime: 90, enemySpawnTime: 3.0 },
+  },
+]
+
+export const INITIAL_HISTORY_FIXTURES: MatchHistoryEntry[] = [
+  {
+    id: 'hist-1',
+    playerName: 'Player One',
+    score: 28,
+    duration: 120,
+    date: '2026-10-08T08:30:00Z',
+    endReason: 'time_up',
+    config: { gameSessionTime: 120, enemySpawnTime: 3.0 },
+    status: 'confirmed',
+  },
+  {
+    id: 'hist-2',
+    playerName: 'Player One',
+    score: 14,
+    duration: 75,
+    date: '2026-10-07T19:10:00Z',
+    endReason: 'destroyed',
+    config: { gameSessionTime: 120, enemySpawnTime: 2.5 },
+    status: 'confirmed',
+  },
+  {
+    id: 'hist-3',
+    playerName: 'Player One',
+    score: 32,
+    duration: 180,
+    date: '2026-10-06T15:40:00Z',
+    endReason: 'time_up',
+    config: { gameSessionTime: 180, enemySpawnTime: 3.0 },
+    status: 'confirmed',
+  },
+]

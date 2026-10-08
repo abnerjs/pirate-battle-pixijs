@@ -8,11 +8,20 @@
     "start": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "format": "biome format --write .",
     "preview": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {
     "@pixi/sound": "^6.0.1",
+    "@radix-ui/react-dialog": "^1.2.0",
+    "@radix-ui/react-label": "^2.1.16",
+    "@radix-ui/react-select": "^2.3.8",
+    "@radix-ui/react-slider": "^1.5.0",
+    "@radix-ui/react-slot": "^1.4.0",
+    "@radix-ui/react-tabs": "^1.1.22",
     "@tanstack/react-query": "^5.104.1",
     "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
@@ -27,6 +36,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
     "@eslint/js": "^9.13.0",
     "@playwright/test": "^1.64.0",
     "@testing-library/dom": "^10.4.2",

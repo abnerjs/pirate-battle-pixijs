@@ -1,0 +1,26 @@
+{
+  "name": "Pirate Battle - Naval Warfare 2D",
+  "short_name": "Pirate Battle",
+  "description": "Navigate the islands. Survive the battle.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#382b1f",
+  "icons": [
+    {
+      "src": "/assets/meta/favicon-48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/meta/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/meta/icon_white.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
