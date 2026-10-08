@@ -80,10 +80,16 @@ export const WoodenButton: React.FC<WoodenButtonProps> = ({
       )}
       {...props}
     >
-      <img
-        src={bgImage}
-        alt="button frame"
-        className="absolute inset-0 w-full h-full object-fill pointer-events-none"
+      {/* 9-Slice Background Frame Asset (Non-overlapping 32px/36px corner slices, 1:1 ratio) */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          borderStyle: 'solid',
+          borderWidth: '16px 24px',
+          borderImageSource: `url('${bgImage}')`,
+          borderImageSlice: '32 36 32 36 fill',
+          borderImageRepeat: 'stretch',
+        }}
       />
       <span
         className={cn(

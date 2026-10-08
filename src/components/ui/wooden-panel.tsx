@@ -15,20 +15,25 @@ export const WoodenPanel: React.FC<WoodenPanelProps> = ({
   return (
     <div
       className={cn(
-        'relative w-full mx-auto flex flex-col justify-between p-6 sm:p-8 text-[#d5c4a1] font-sans overflow-hidden',
+        'relative w-full mx-auto flex flex-col justify-between text-secondary font-sans',
         maxWidth,
         className,
       )}
     >
-      {/* Background Frame Asset */}
-      <img
-        src="/assets/png/default/ui/menu/panel_menu.png"
-        alt="Panel Frame"
-        className="absolute inset-0 w-full h-full object-fill pointer-events-none z-0"
+      {/* 9-Slice Background Frame Asset (112px slices for corners & borders, scaled proportionally for smaller heights) */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          borderStyle: 'solid',
+          borderWidth: '112px',
+          borderImageSource: "url('/assets/png/default/ui/menu/panel_menu.png')",
+          borderImageSlice: '112 fill',
+          borderImageRepeat: 'stretch',
+        }}
       />
 
-      {/* Content Container Inside Frame */}
-      <div className="relative z-10 w-full h-full flex flex-col justify-between items-center text-center">
+      {/* Content Container Inside 9-Slice Frame */}
+      <div className="relative z-10 w-full flex flex-col justify-between items-center text-center p-6 sm:p-8 space-y-4">
         {children}
       </div>
     </div>

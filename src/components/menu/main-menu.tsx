@@ -113,7 +113,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
                   </span>
                 </button>
 
-                <span className="text-xs font-bold font-sans text-secondary font-bold">
+                <span className="text-xs font-sans text-secondary font-bold">
                   Navigate the islands. Survive the battle.
                 </span>
               </div>
