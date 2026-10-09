@@ -5,6 +5,7 @@ import { HISTORY_QUERY_KEY, RANKING_QUERY_KEY } from '@/api/queries'
 import { GameView } from '@/components/game/game-view'
 import { MainMenu } from '@/components/menu/main-menu'
 import { Toaster } from '@/components/ui/sonner'
+import { preloadGameAssets } from '@/game/asset-loader'
 import { useNetworkStore } from '@/lib/network-store'
 import type { GameOptions, NetworkScenario } from '@/types/game'
 
@@ -52,9 +53,10 @@ export default function App() {
     setActiveConfigSnapshot(null)
   }
 
-  // Global keybinding:
-  // - Ctrl + Shift + D: Cycle MSW scenario with custom secondary-pressed wooden Sonner toast
+  // Global keybinding & background asset preloading
   useEffect(() => {
+    preloadGameAssets().catch(() => {})
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
         e.preventDefault()
@@ -100,7 +102,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="w-screen h-screen overflow-hidden bg-slate-950 text-slate-100 antialiased select-none">
+      <div className="w-full h-full h-[100dvh] overflow-hidden bg-slate-950 text-slate-100 antialiased select-none touch-none">
         {!inGame || !activeConfigSnapshot ? (
           <MainMenu onStartGame={handleStartGame} />
         ) : (

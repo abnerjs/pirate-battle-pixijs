@@ -38,6 +38,11 @@ export const CaptainsLog: React.FC<CaptainsLogProps> = ({
   )
   const historyQuery = useMatchHistoryQuery(histPage, limit)
 
+  const isRankingLoading =
+    rankingQuery.isPending || rankingQuery.isFetching || rankingQuery.isLoading
+  const isHistoryLoading =
+    historyQuery.isPending || historyQuery.isFetching || historyQuery.isLoading
+
   return (
     <div className="flex items-center justify-center w-full h-full p-2 sm:p-4">
       <WoodenPanel>
@@ -91,23 +96,44 @@ export const CaptainsLog: React.FC<CaptainsLogProps> = ({
 
                   {/* Table Rows */}
                   <div className="space-y-1">
-                    {rankingQuery.isLoading && (
-                      <div className="py-6 flex justify-center">
-                        <Spinner />
+                    {isRankingLoading && (
+                      <div className="py-12 flex flex-col items-center justify-center gap-2 text-secondary">
+                        <Spinner className="w-8 h-8 text-amber-400" />
+                        <span className="text-xs font-bold uppercase tracking-wider">
+                          Searching the Seas for Captains...
+                        </span>
                       </div>
                     )}
 
-                    {rankingQuery.isError && (
+                    {!isRankingLoading && rankingQuery.isError && (
                       <button
                         type="button"
                         onClick={() => rankingQuery.refetch()}
-                        className="w-full py-6 text-center text-sm text-secondary font-sans"
+                        className="w-full py-10 flex flex-col items-center justify-center gap-1.5 text-center text-sm text-secondary font-sans hover:text-amber-300 transition-colors"
                       >
-                        Failed to load ranking. Click here to refresh.
+                        <span className="font-extrabold text-rose-400">
+                          Failed to load crew ranking.
+                        </span>
+                        <span className="text-xs underline font-bold">Click here to refresh</span>
                       </button>
                     )}
 
-                    {!rankingQuery.isLoading &&
+                    {!isRankingLoading &&
+                      !rankingQuery.isError &&
+                      rankingQuery.data?.data.length === 0 && (
+                        <div className="py-8 px-4 flex flex-col items-center justify-center gap-2 text-center text-secondary border border-dashed border-amber-900/50 rounded-lg bg-slate-950/40 my-2">
+                          <span className="text-2xl">📜</span>
+                          <h3 className="text-xs font-extrabold uppercase tracking-widest text-amber-300">
+                            NO CAPTAINS RANKED YET
+                          </h3>
+                          <p className="text-[11px] text-secondary/80 max-w-xs leading-snug">
+                            No captain entries found for these battle settings. Be the first to
+                            command these waters!
+                          </p>
+                        </div>
+                      )}
+
+                    {!isRankingLoading &&
                       !rankingQuery.isError &&
                       rankingQuery.data?.data.map((entry, idx) => {
                         const globalRank = (rankingQuery.data.page - 1) * limit + idx + 1
@@ -202,23 +228,44 @@ export const CaptainsLog: React.FC<CaptainsLogProps> = ({
 
                   {/* Table Rows */}
                   <div className="space-y-1">
-                    {historyQuery.isLoading && (
-                      <div className="py-6 flex justify-center">
-                        <Spinner />
+                    {isHistoryLoading && (
+                      <div className="py-12 flex flex-col items-center justify-center gap-2 text-secondary">
+                        <Spinner className="w-8 h-8 text-amber-400" />
+                        <span className="text-xs font-bold uppercase tracking-wider">
+                          Reading Captain Logbook...
+                        </span>
                       </div>
                     )}
 
-                    {historyQuery.isError && (
+                    {!isHistoryLoading && historyQuery.isError && (
                       <button
                         type="button"
                         onClick={() => historyQuery.refetch()}
-                        className="w-full py-6 text-center text-sm text-secondary font-sans"
+                        className="w-full py-10 flex flex-col items-center justify-center gap-1.5 text-center text-sm text-secondary font-sans hover:text-amber-300 transition-colors"
                       >
-                        Failed to load match history. Click here to refresh.
+                        <span className="font-extrabold text-rose-400">
+                          Failed to load match history.
+                        </span>
+                        <span className="text-xs underline font-bold">Click here to refresh</span>
                       </button>
                     )}
 
-                    {!historyQuery.isLoading &&
+                    {!isHistoryLoading &&
+                      !historyQuery.isError &&
+                      historyQuery.data?.data.length === 0 && (
+                        <div className="py-8 px-4 flex flex-col items-center justify-center gap-2 text-center text-secondary border border-dashed border-amber-900/50 rounded-lg bg-slate-950/40 my-2">
+                          <span className="text-2xl">⚓</span>
+                          <h3 className="text-xs font-extrabold uppercase tracking-widest text-amber-300">
+                            NO BATTLES RECORDED YET
+                          </h3>
+                          <p className="text-[11px] text-secondary/80 max-w-xs leading-snug">
+                            No battle entries saved in your logbook yet. Set sail and conquer the
+                            sea!
+                          </p>
+                        </div>
+                      )}
+
+                    {!isHistoryLoading &&
                       !historyQuery.isError &&
                       historyQuery.data?.data.map((entry) => (
                         <div

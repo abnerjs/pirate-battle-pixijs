@@ -8,7 +8,7 @@ export class ChaserEnemy extends Ship {
   public collisionDamage: number
 
   constructor(x: number, y: number, variant?: number) {
-    const v = variant || Math.floor(Math.random() * 4) + 1
+    const v = variant || Math.floor(Math.random() * 6) + 1
     super({
       x,
       y,

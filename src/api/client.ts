@@ -9,6 +9,8 @@ export const apiClient = axios.create({
   timeout: 10000,
 })
 
+import { getOfflineMatchHistory, getOfflineRanking } from './queries'
+
 export async function fetchRanking(
   page = 1,
   limit = 5,
@@ -19,20 +21,30 @@ export async function fetchRanking(
   if (gameSessionTime !== undefined) params.gameSessionTime = gameSessionTime
   if (enemySpawnTime !== undefined) params.enemySpawnTime = enemySpawnTime
 
-  const response = await apiClient.get<PaginatedResponse<RankingEntry>>('/api/ranking', {
-    params,
-  })
-  return response.data
+  try {
+    const response = await apiClient.get<PaginatedResponse<RankingEntry>>('/api/ranking', {
+      params,
+    })
+    return response.data
+  } catch (err) {
+    console.warn('fetchRanking failed, falling back to local storage:', err)
+    return getOfflineRanking(page, limit, gameSessionTime, enemySpawnTime)
+  }
 }
 
 export async function fetchMatchHistory(
   page = 1,
   limit = 5,
 ): Promise<PaginatedResponse<MatchHistoryEntry>> {
-  const response = await apiClient.get<PaginatedResponse<MatchHistoryEntry>>('/api/history', {
-    params: { page, limit },
-  })
-  return response.data
+  try {
+    const response = await apiClient.get<PaginatedResponse<MatchHistoryEntry>>('/api/history', {
+      params: { page, limit },
+    })
+    return response.data
+  } catch (err) {
+    console.warn('fetchMatchHistory failed, falling back to local storage:', err)
+    return getOfflineMatchHistory(page, limit)
+  }
 }
 
 export async function saveMatchResult(match: MatchHistoryEntry): Promise<MatchHistoryEntry> {

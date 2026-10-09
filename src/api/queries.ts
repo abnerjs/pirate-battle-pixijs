@@ -93,6 +93,86 @@ export function saveOfflineMatchResult(match: MatchHistoryEntry) {
   }
 }
 
+export function getOfflineRanking(
+  page = 1,
+  limit = 5,
+  gameSessionTime?: number,
+  enemySpawnTime?: number,
+) {
+  try {
+    const rankingKey = 'pirate_battle_ranking_db_v3'
+    const rawRanking = localStorage.getItem(rankingKey)
+    let ranking = rawRanking ? JSON.parse(rawRanking) : []
+
+    if (gameSessionTime !== undefined) {
+      ranking = ranking.filter(
+        (r: { config?: { gameSessionTime?: number } }) =>
+          r.config?.gameSessionTime === gameSessionTime,
+      )
+    }
+
+    if (enemySpawnTime !== undefined) {
+      ranking = ranking.filter(
+        (r: { config?: { enemySpawnTime?: number } }) =>
+          r.config?.enemySpawnTime === enemySpawnTime,
+      )
+    }
+
+    ranking.sort(
+      (
+        a: { score: number; duration: number; date: string },
+        b: { score: number; duration: number; date: string },
+      ) => {
+        if (b.score !== a.score) return b.score - a.score
+        if (b.duration !== a.duration) return b.duration - a.duration
+        return new Date(a.date).getTime() - new Date(b.date).getTime()
+      },
+    )
+
+    const total = ranking.length
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+    const startIndex = (page - 1) * limit
+    const paginated = ranking.slice(startIndex, startIndex + limit)
+
+    return {
+      data: paginated,
+      total,
+      page,
+      limit,
+      totalPages,
+    }
+  } catch (e) {
+    console.error('Failed to get offline ranking', e)
+    return { data: [], total: 0, page: 1, limit, totalPages: 1 }
+  }
+}
+
+export function getOfflineMatchHistory(page = 1, limit = 5) {
+  try {
+    const historyKey = 'pirate_battle_history_db_v3'
+    const rawHistory = localStorage.getItem(historyKey)
+    const history: MatchHistoryEntry[] = rawHistory ? JSON.parse(rawHistory) : []
+
+    history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    const total = history.length
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+    const startIndex = (page - 1) * limit
+    const paginated = history.slice(startIndex, startIndex + limit)
+
+    return {
+      data: paginated,
+      total,
+      page,
+      limit,
+      totalPages,
+    }
+  } catch (e) {
+    console.error('Failed to get offline match history', e)
+    return { data: [], total: 0, page: 1, limit, totalPages: 1 }
+  }
+}
+
 export function useSaveMatchMutation() {
   const queryClient = useQueryClient()
 

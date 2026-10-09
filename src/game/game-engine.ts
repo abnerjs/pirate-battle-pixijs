@@ -68,12 +68,12 @@ export class GameEngine {
     this.input = new InputController()
   }
 
-  public async init(containerElement: HTMLElement) {
+  public async init(containerElement: HTMLElement, onProgress?: (progress: number) => void) {
     const width = containerElement.clientWidth || DEFAULT_BALANCE_CONFIG.arenaWidth
     const height = containerElement.clientHeight || DEFAULT_BALANCE_CONFIG.arenaHeight
 
     // 1. Preload PixiJS v8 Textures into Cache
-    await preloadGameAssets()
+    await preloadGameAssets(onProgress)
 
     this.app = new Application()
     await this.app.init({

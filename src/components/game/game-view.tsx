@@ -49,6 +49,10 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
     'idle',
   )
 
+  // Loading Screen state
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadProgress, setLoadProgress] = useState(0)
+
   const saveMutation = useSaveMatchMutation()
 
   // Initialize PixiJS GameEngine
@@ -56,6 +60,8 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
     if (!canvasContainerRef.current) return
 
     const container = canvasContainerRef.current
+    setIsLoading(true)
+    setLoadProgress(0)
 
     const engine = new GameEngine(config, {
       onStateUpdate: (state) => {
@@ -76,7 +82,17 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
     })
 
     engineRef.current = engine
-    engine.init(container)
+    engine
+      .init(container, (progress) => {
+        setLoadProgress(Math.min(100, Math.max(0, Math.round(progress * 100))))
+      })
+      .then(() => {
+        setIsLoading(false)
+      })
+      .catch((err) => {
+        console.warn('GameEngine init error:', err)
+        setIsLoading(false)
+      })
 
     return () => {
       engine.destroy()
@@ -128,6 +144,8 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
     setIsGameOver(false)
     setMatchResult(null)
     setUploadStatus('idle')
+    setIsLoading(true)
+    setLoadProgress(0)
 
     const engine = new GameEngine(config, {
       onStateUpdate: (state) => {
@@ -148,7 +166,17 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
     })
 
     engineRef.current = engine
-    engine.init(canvasContainerRef.current)
+    engine
+      .init(canvasContainerRef.current, (progress) => {
+        setLoadProgress(Math.min(100, Math.max(0, Math.round(progress * 100))))
+      })
+      .then(() => {
+        setIsLoading(false)
+      })
+      .catch((err) => {
+        console.warn('GameEngine restart init error:', err)
+        setIsLoading(false)
+      })
   }
 
   const handlePauseToggle = () => {
@@ -164,9 +192,64 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-slate-950 flex flex-col justify-between select-none">
+    <div className="relative w-full h-full h-[100dvh] overflow-hidden bg-slate-950 flex flex-col justify-between select-none touch-none">
+      {/* 0. Pirate Loading Screen Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-4 select-none touch-none">
+          {/* Blurred Background Scene Asset */}
+          <img
+            src="/assets/ui_scene_background.png"
+            alt="Loading Scene"
+            className="fixed inset-0 w-full h-full object-cover pointer-events-none z-0 filter blur-sm opacity-50"
+          />
+          <div className="fixed inset-0 bg-black/60 z-10 pointer-events-none" />
+
+          {/* Central Wooden Panel Box */}
+          <WoodenPanel className="max-w-md relative z-20">
+            <div className="py-6 px-4 sm:px-8 flex flex-col items-center gap-4 w-full">
+              {/* Pirate Animated Icon */}
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                <img
+                  src="/assets/png/default/ui/hud/icon_score.png"
+                  alt="Loading Icon"
+                  className="w-12 h-12 sm:w-16 sm:h-16 object-contain animate-pulse"
+                />
+              </div>
+
+              <div className="flex flex-col items-center gap-1">
+                <h2 className="text-xl sm:text-2xl font-black font-sans text-secondary tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                  CARREGANDO OS MARES
+                </h2>
+                <span className="text-xs font-sans text-amber-300/90 font-bold uppercase tracking-wider">
+                  PREPARANDO O OCEANO E OS NAVIOS
+                </span>
+              </div>
+
+              {/* Progress Bar Container */}
+              <div className="w-full bg-slate-950/90 border-2 border-amber-800/80 rounded-full h-6 p-0.5 relative overflow-hidden shadow-inner my-1">
+                <div
+                  className="bg-gradient-to-r from-amber-700 via-amber-400 to-yellow-300 h-full rounded-full transition-all duration-200 flex items-center justify-end pr-2 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                  style={{ width: `${Math.max(6, loadProgress)}%` }}
+                />
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-black font-mono text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+                  {loadProgress}%
+                </span>
+              </div>
+
+              {/* Pirate Game Tip */}
+              <div className="bg-black/50 border border-amber-900/50 rounded-lg p-3 text-center max-w-xs">
+                <p className="text-[11px] font-medium text-secondary/90 italic leading-snug">
+                  "Dica: Use as teclas W, A, D para navegar e Q / E para disparar as bordadas
+                  laterais!"
+                </p>
+              </div>
+            </div>
+          </WoodenPanel>
+        </div>
+      )}
+
       {/* Top HUD Header: Mobile flex-col-reverse (time & pause above health), SM+: flex-row justify-between */}
-      <div className="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-30 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 pointer-events-none">
+      <div className="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 top-[calc(0.75rem+env(safe-area-inset-top,0px))] left-[calc(0.75rem+env(safe-area-inset-left,0px))] right-[calc(0.75rem+env(safe-area-inset-right,0px))] z-30 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 pointer-events-none">
         {/* Left / Bottom on Mobile: Player Hull Health */}
         <div className="flex items-center gap-2 pointer-events-auto self-start">
           <img
@@ -221,7 +304,7 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
       </div>
 
       {/* 3. Weapons & Touch Controls HUD Bar (No wrapper background, middle button 50% higher) */}
-      <div className="absolute bottom-4 left-0 right-0 z-30 px-6 flex justify-between items-end pointer-events-auto">
+      <div className="absolute bottom-3 sm:bottom-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 px-3 sm:px-6 pb-[env(safe-area-inset-bottom,0px)] flex justify-between items-end pointer-events-auto">
         {/* Steering Controls (Left / Forward / Right) */}
         <div className="flex items-end gap-1.5">
           <RoundedButton
@@ -233,10 +316,12 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
             onMouseUp={() => {
               if (engineRef.current) engineRef.current.input.touchTurnLeft = false
             }}
-            onTouchStart={() => {
+            onTouchStart={(e) => {
+              e.preventDefault()
               if (engineRef.current) engineRef.current.input.touchTurnLeft = true
             }}
-            onTouchEnd={() => {
+            onTouchEnd={(e) => {
+              e.preventDefault()
               if (engineRef.current) engineRef.current.input.touchTurnLeft = false
             }}
             title="Turn Left (A / Left Arrow)"
@@ -259,10 +344,12 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
               onMouseUp={() => {
                 if (engineRef.current) engineRef.current.input.touchMoveForward = false
               }}
-              onTouchStart={() => {
+              onTouchStart={(e) => {
+                e.preventDefault()
                 if (engineRef.current) engineRef.current.input.touchMoveForward = true
               }}
-              onTouchEnd={() => {
+              onTouchEnd={(e) => {
+                e.preventDefault()
                 if (engineRef.current) engineRef.current.input.touchMoveForward = false
               }}
               title="Move Forward (W / Up Arrow)"
@@ -284,10 +371,12 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
             onMouseUp={() => {
               if (engineRef.current) engineRef.current.input.touchTurnRight = false
             }}
-            onTouchStart={() => {
+            onTouchStart={(e) => {
+              e.preventDefault()
               if (engineRef.current) engineRef.current.input.touchTurnRight = true
             }}
-            onTouchEnd={() => {
+            onTouchEnd={(e) => {
+              e.preventDefault()
               if (engineRef.current) engineRef.current.input.touchTurnRight = false
             }}
             title="Turn Right (D / Right Arrow)"
@@ -308,6 +397,10 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
               size="lg"
               isPressed={activeInput.fireLeft}
               onClick={() => engineRef.current?.fireLeftBroadside()}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                engineRef.current?.fireLeftBroadside()
+              }}
               title="Left Broadside (Q / U)"
             >
               <img
@@ -339,6 +432,10 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
               size="lg"
               isPressed={activeInput.fireFront}
               onClick={() => engineRef.current?.fireFrontWeapon()}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                engineRef.current?.fireFrontWeapon()
+              }}
               title="Front Attack (Space / J)"
             >
               <img
@@ -370,6 +467,10 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
               size="lg"
               isPressed={activeInput.fireRight}
               onClick={() => engineRef.current?.fireRightBroadside()}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                engineRef.current?.fireRightBroadside()
+              }}
               title="Right Broadside (E / I)"
             >
               <img

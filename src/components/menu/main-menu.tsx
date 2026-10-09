@@ -32,7 +32,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
   const currentShipNum = AVAILABLE_SHIPS.indexOf(currentShip) + 1
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden select-none font-sans bg-slate-950 flex flex-col items-center justify-center">
+    <div className="relative w-full h-full h-[100dvh] overflow-hidden select-none font-sans bg-slate-950 flex flex-col items-center justify-center">
       {/* 1. Base Layer: Scene Background Asset */}
       <img
         src="/assets/ui_scene_background.png"
@@ -44,7 +44,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
       <div className="fixed inset-0 bg-black/65 backdrop-blur-sm z-10 pointer-events-none" />
 
       {/* 3. Jungle Gaming Logo Asset at Bottom Right */}
-      <div className="fixed bottom-4 right-4 z-30 pointer-events-auto">
+      <div className="fixed bottom-4 right-4 z-30 pointer-events-auto pb-[env(safe-area-inset-bottom,0px)] pr-[env(safe-area-inset-right,0px)]">
         <img
           src="/assets/logo_jungle_gaming.svg"
           alt="Jungle Gaming Logo"

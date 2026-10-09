@@ -41,15 +41,15 @@ export class Ship {
     this.hp = options.maxHp
     this.isPlayer = !!options.isPlayer
 
-    // Extract variant (1..4) from options or texture path
+    // Extract variant (1..6) from options or texture path
     const optionVariant = options.variant
-    if (optionVariant && optionVariant >= 1 && optionVariant <= 4) {
+    if (optionVariant && optionVariant >= 1 && optionVariant <= 6) {
       this.variant = optionVariant
     } else {
       const match = options.shipTexturePath.match(/ship_(\d+)/)
       if (match) {
         const num = Number.parseInt(match[1], 10)
-        this.variant = ((num - 1) % 4) + 1
+        this.variant = ((num - 1) % 6) + 1
       }
     }
 
@@ -75,20 +75,22 @@ export class Ship {
       this.healthBarFrameSprite.anchor.set(0.5, 0.5)
       this.healthBarFrameSprite.x = 0
       this.healthBarFrameSprite.y = 0
-      this.healthBarFrameSprite.scale.set(0.35, 0.35)
+      this.healthBarFrameSprite.width = 56
+      this.healthBarFrameSprite.height = 14
 
       this.healthBarFillSprite = new Sprite(fillTex)
       this.healthBarFillSprite.anchor.set(0.5, 0.5)
       this.healthBarFillSprite.x = 0
       this.healthBarFillSprite.y = 0
-      this.healthBarFillSprite.zIndex = 10
-      this.healthBarFillSprite.scale.set(0.35, 0.35)
+      this.healthBarFillSprite.width = 56
+      this.healthBarFillSprite.height = 14
 
       this.healthBarMask = new Graphics()
       this.healthBarFillSprite.mask = this.healthBarMask
 
       this.healthBarContainer.addChild(this.healthBarFrameSprite)
       this.healthBarContainer.addChild(this.healthBarFillSprite)
+      this.healthBarContainer.addChild(this.healthBarMask)
 
       this.container.addChild(this.healthBarContainer)
       this.updateHealthBar()
@@ -108,14 +110,14 @@ export class Ship {
   }
 
   /**
-   * Calculates ship texture index according to f(n) = 6n - 5 for variant V (1..4)
+   * Calculates ship texture index according to f(n) = V + 6 * (n - 1) for variant V (1..6)
    * n = 1: 0 hits (no damage)
-   * n = 2: 1 hit
-   * n = 3: 2 hits
-   * n = 4: 4 hits / dead (0 HP, stops moving)
+   * n = 2: 1 hit (light damage)
+   * n = 3: 2 hits (heavy damage)
+   * n = 4: 4 hits / dead (0 HP, sunk)
    */
   public getTextureForState(n: number): Texture {
-    const shipIdx = this.variant - 1 + (6 * n - 5)
+    const shipIdx = this.variant + 6 * (n - 1)
     try {
       return Texture.from(`/assets/png/retina/ships/ship_${shipIdx}.png`)
     } catch (_e) {
@@ -156,11 +158,16 @@ export class Ship {
     }
     this.healthBarContainer.visible = true
 
-    const fillWidth = 56 * hpRatio
+    // Inside enemy_health_fill_red.png (160x40 at scale 0.35 with anchor 0.5):
+    // The red bar spans from x ~24 to 135 (width ~112px in 160px image)
+    // Left edge of red fill: (24 - 80) * 0.35 = -19.6
+    // Max red fill width: 112 * 0.35 = 39.2
+    const startX = -19.6
+    const fillWidth = 39.2 * hpRatio
 
     this.healthBarMask.clear()
     if (fillWidth > 0) {
-      this.healthBarMask.rect(-28, -10, fillWidth, 20)
+      this.healthBarMask.rect(startX, -10, fillWidth, 20)
       this.healthBarMask.fill(0xffffff)
     }
   }

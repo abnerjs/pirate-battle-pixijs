@@ -3,7 +3,7 @@ import { Assets, Texture } from 'pixi.js'
 export const ALL_GAME_TILES = Array.from({ length: 96 }, (_, i) => i + 1)
 export const ALL_GAME_SHIPS = Array.from({ length: 24 }, (_, i) => `ship_${i + 1}.png`)
 
-export async function preloadGameAssets(): Promise<void> {
+export async function preloadGameAssets(onProgress?: (progress: number) => void): Promise<void> {
   const urls: string[] = []
 
   // Add all 96 tiles
@@ -60,9 +60,15 @@ export async function preloadGameAssets(): Promise<void> {
   )
 
   try {
-    await Assets.load(urls)
+    await Assets.load(urls, (progress: number) => {
+      if (onProgress) {
+        onProgress(Math.min(1, Math.max(0, progress)))
+      }
+    })
+    if (onProgress) onProgress(1)
   } catch (err) {
     console.warn('Failed to load some game assets via Assets.load:', err)
+    if (onProgress) onProgress(1)
   }
 }
 
