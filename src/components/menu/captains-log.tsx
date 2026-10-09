@@ -52,6 +52,10 @@ export const CaptainsLog: React.FC<CaptainsLogProps> = ({
   const isHistoryLoading =
     historyQuery.isPending || historyQuery.isFetching || historyQuery.isLoading
 
+  const rankingList = rankingQuery.data?.data ?? []
+  const historyList = historyQuery.data?.data ?? []
+  const currentRankPage = rankingQuery.data?.page ?? 1
+
   return (
     <div className="flex items-center justify-center w-full h-full p-1 sm:p-4">
       <WoodenPanel>
@@ -129,25 +133,23 @@ export const CaptainsLog: React.FC<CaptainsLogProps> = ({
                       </button>
                     )}
 
-                    {!isRankingLoading &&
-                      !rankingQuery.isError &&
-                      rankingQuery.data?.data.length === 0 && (
-                        <div className="py-6 sm:py-8 px-2 sm:px-4 flex flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-secondary border border-dashed border-amber-900/50 rounded-lg bg-slate-950/40 my-1 sm:my-2">
-                          <span className="text-xl sm:text-2xl">📜</span>
-                          <h3 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-amber-300">
-                            NO CAPTAINS RANKED YET
-                          </h3>
-                          <p className="text-[10px] sm:text-[11px] text-secondary/80 max-w-xs leading-snug">
-                            No captain entries found for these battle settings. Be the first to
-                            command these waters!
-                          </p>
-                        </div>
-                      )}
+                    {!isRankingLoading && !rankingQuery.isError && rankingList.length === 0 && (
+                      <div className="py-6 sm:py-8 px-2 sm:px-4 flex flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-secondary border border-dashed border-amber-900/50 rounded-lg bg-slate-950/40 my-1 sm:my-2">
+                        <span className="text-xl sm:text-2xl">📜</span>
+                        <h3 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-amber-300">
+                          NO CAPTAINS RANKED YET
+                        </h3>
+                        <p className="text-[10px] sm:text-[11px] text-secondary/80 max-w-xs leading-snug">
+                          No captain entries found for these battle settings. Be the first to
+                          command these waters!
+                        </p>
+                      </div>
+                    )}
 
                     {!isRankingLoading &&
                       !rankingQuery.isError &&
-                      rankingQuery.data?.data.map((entry, idx) => {
-                        const globalRank = (rankingQuery.data.page - 1) * limit + idx + 1
+                      rankingList.map((entry, idx) => {
+                        const globalRank = (currentRankPage - 1) * limit + idx + 1
                         const isYou = entry.playerId === 'player'
 
                         return (
@@ -268,24 +270,21 @@ export const CaptainsLog: React.FC<CaptainsLogProps> = ({
                       </button>
                     )}
 
-                    {!isHistoryLoading &&
-                      !historyQuery.isError &&
-                      historyQuery.data?.data.length === 0 && (
-                        <div className="py-6 sm:py-8 px-2 sm:px-4 flex flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-secondary border border-dashed border-amber-900/50 rounded-lg bg-slate-950/40 my-1 sm:my-2">
-                          <span className="text-xl sm:text-2xl">⚓</span>
-                          <h3 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-amber-300">
-                            NO BATTLES RECORDED YET
-                          </h3>
-                          <p className="text-[10px] sm:text-[11px] text-secondary/80 max-w-xs leading-snug">
-                            No battle entries saved in your logbook yet. Set sail and conquer the
-                            sea!
-                          </p>
-                        </div>
-                      )}
+                    {!isHistoryLoading && !historyQuery.isError && historyList.length === 0 && (
+                      <div className="py-6 sm:py-8 px-2 sm:px-4 flex flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-secondary border border-dashed border-amber-900/50 rounded-lg bg-slate-950/40 my-1 sm:my-2">
+                        <span className="text-xl sm:text-2xl">⚓</span>
+                        <h3 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-amber-300">
+                          NO BATTLES RECORDED YET
+                        </h3>
+                        <p className="text-[10px] sm:text-[11px] text-secondary/80 max-w-xs leading-snug">
+                          No battle entries saved in your logbook yet. Set sail and conquer the sea!
+                        </p>
+                      </div>
+                    )}
 
                     {!isHistoryLoading &&
                       !historyQuery.isError &&
-                      historyQuery.data?.data.map((entry) => (
+                      historyList.map((entry) => (
                         <div
                           key={entry.id}
                           className="grid grid-cols-12 items-center px-1.5 sm:px-2 py-1.5 sm:py-3 rounded text-[10px] sm:text-xs transition-colors bg-slate-900/50 hover:bg-amber-950/30 border border-slate-800/60"
