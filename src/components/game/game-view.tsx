@@ -1,9 +1,14 @@
-import { Home, Navigation, Play, RotateCcw, Target } from 'lucide-react'
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSaveMatchMutation } from '@/api/queries'
 import { ResultModal } from '@/components/menu/result-modal'
-import { Button } from '@/components/ui/button'
+import { CounterPanel } from '@/components/ui/counter-panel'
+import { RoundedButton } from '@/components/ui/rounded-button'
+import { WoodenButton } from '@/components/ui/wooden-button'
+import { WoodenPanel } from '@/components/ui/wooden-panel'
+import { DEFAULT_BALANCE_CONFIG } from '@/game/config/game-config'
+import { GameEngine } from '@/game/game-engine'
+import type { InputState } from '@/game/input/input-controller'
 import type { GameOptions, MatchHistoryEntry } from '@/types/game'
 
 interface GameViewProps {
@@ -12,106 +17,84 @@ interface GameViewProps {
 }
 
 export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
-  // Game state
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
+  const engineRef = useRef<GameEngine | null>(null)
+
+  // HUD & Game state synced from engine
   const [playerHp, setPlayerHp] = useState(100)
-  const [maxHp] = useState(100)
+  const [maxHp, setMaxHp] = useState(100)
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(config.gameSessionTime)
   const [isPaused, setIsPaused] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
+
+  // Cooldown states for HUD
+  const [frontCooldown, setFrontCooldown] = useState(0)
+  const [leftCooldown, setLeftCooldown] = useState(0)
+  const [rightCooldown, setRightCooldown] = useState(0)
+
+  // Active Input state for HUD button highlighting
+  const [activeInput, setActiveInput] = useState<InputState>({
+    moveForward: false,
+    turnLeft: false,
+    turnRight: false,
+    fireLeft: false,
+    fireFront: false,
+    fireRight: false,
+  })
+
+  // Result & Upload states
   const [matchResult, setMatchResult] = useState<MatchHistoryEntry | null>(null)
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'failed'>(
     'idle',
   )
 
-  // Cooldown states
-  const [frontCooldown, setFrontCooldown] = useState(0)
-  const [sideCooldown, setSideCooldown] = useState(0)
-
   const saveMutation = useSaveMatchMutation()
 
-  // Match timer loop
+  // Initialize PixiJS GameEngine
   useEffect(() => {
-    if (isPaused || isGameOver) return
+    if (!canvasContainerRef.current) return
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          handleEndMatch('time_up')
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+    const container = canvasContainerRef.current
 
-    return () => clearInterval(timer)
-  }, [isPaused, isGameOver])
+    const engine = new GameEngine(config, {
+      onStateUpdate: (state) => {
+        setPlayerHp(state.playerHp)
+        setMaxHp(state.maxHp)
+        setScore(state.score)
+        setTimeLeft(state.timeLeft)
+        setFrontCooldown(state.frontCooldown)
+        setLeftCooldown(state.leftCooldown)
+        setRightCooldown(state.rightCooldown)
+        setIsPaused(state.isPaused)
+        setIsGameOver(state.isGameOver)
+        if (state.inputState) setActiveInput(state.inputState)
+      },
+      onEndMatch: (reason) => {
+        handleEndMatch(reason)
+      },
+    })
 
-  // Cooldown timer loop
-  useEffect(() => {
-    if (isPaused || isGameOver) return
+    engineRef.current = engine
+    engine.init(container)
 
-    const cdTimer = setInterval(() => {
-      setFrontCooldown((prev) => Math.max(0, prev - 100))
-      setSideCooldown((prev) => Math.max(0, prev - 100))
-    }, 100)
-
-    return () => clearInterval(cdTimer)
-  }, [isPaused, isGameOver])
-
-  // Keybindings for Pause & Weapons simulation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isGameOver) return
-
-      if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
-        setIsPaused((prev) => !prev)
-      }
-
-      if (!isPaused) {
-        if (e.code === 'Space' || e.key === 'j' || e.key === 'J') {
-          if (frontCooldown === 0) {
-            setFrontCooldown(600) // 0.6s cooldown
-            if (Math.random() > 0.4) {
-              setScore((s) => s + 1)
-            }
-          }
-        }
-
-        if (
-          e.key === 'q' ||
-          e.key === 'Q' ||
-          e.key === 'e' ||
-          e.key === 'E' ||
-          e.key === 'u' ||
-          e.key === 'U' ||
-          e.key === 'i' ||
-          e.key === 'I'
-        ) {
-          if (sideCooldown === 0) {
-            setSideCooldown(1500) // 1.5s cooldown
-            const hits = Math.floor(Math.random() * 3)
-            setScore((s) => s + hits)
-          }
-        }
-      }
+    return () => {
+      engine.destroy()
+      engineRef.current = null
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isPaused, isGameOver, frontCooldown, sideCooldown])
+  }, [config])
 
   // End match handler
   const handleEndMatch = async (reason: 'victory' | 'destroyed' | 'time_up') => {
-    setIsGameOver(true)
-    const timePlayed = config.gameSessionTime - timeLeft
+    const currentScore = engineRef.current ? engineRef.current.score : score
+    const timePlayed =
+      config.gameSessionTime - (engineRef.current ? Math.ceil(engineRef.current.timeLeft) : 0)
 
     const newMatch: MatchHistoryEntry = {
       id: `match-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       playerId: 'player',
       playerName: 'Flapjack',
-      score: score,
+      score: currentScore,
       duration: Math.max(1, timePlayed),
       date: new Date().toISOString(),
       endReason: reason,
@@ -132,6 +115,12 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
   }
 
   const handleRestart = () => {
+    if (!canvasContainerRef.current) return
+    if (engineRef.current) {
+      engineRef.current.destroy()
+      engineRef.current = null
+    }
+
     setPlayerHp(100)
     setScore(0)
     setTimeLeft(config.gameSessionTime)
@@ -139,207 +128,321 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
     setIsGameOver(false)
     setMatchResult(null)
     setUploadStatus('idle')
-    setFrontCooldown(0)
-    setSideCooldown(0)
+
+    const engine = new GameEngine(config, {
+      onStateUpdate: (state) => {
+        setPlayerHp(state.playerHp)
+        setMaxHp(state.maxHp)
+        setScore(state.score)
+        setTimeLeft(state.timeLeft)
+        setFrontCooldown(state.frontCooldown)
+        setLeftCooldown(state.leftCooldown)
+        setRightCooldown(state.rightCooldown)
+        setIsPaused(state.isPaused)
+        setIsGameOver(state.isGameOver)
+        if (state.inputState) setActiveInput(state.inputState)
+      },
+      onEndMatch: (reason) => {
+        handleEndMatch(reason)
+      },
+    })
+
+    engineRef.current = engine
+    engine.init(canvasContainerRef.current)
   }
 
-  const handleSimulateDamage = () => {
-    setPlayerHp((hp) => {
-      const nextHp = Math.max(0, hp - 25)
-      if (nextHp === 0) {
-        handleEndMatch('destroyed')
-      }
-      return nextHp
-    })
+  const handlePauseToggle = () => {
+    if (engineRef.current) {
+      engineRef.current.togglePause()
+    }
+  }
+
+  const handleResume = () => {
+    if (engineRef.current) {
+      engineRef.current.setPaused(false)
+    }
   }
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-slate-950 flex flex-col justify-between select-none">
-      {/* HUD Header Bar */}
-      <div className="absolute top-0 left-0 right-0 z-30 p-3 flex items-center justify-between bg-gradient-to-b from-slate-950/90 to-transparent backdrop-blur-sm pointer-events-auto">
-        {/* Left: Player Health Bar Asset */}
-        {/* Left: Player Health Bar Asset */}
-        <div className="flex items-center gap-3 bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-amber-900/40">
+      {/* 1. Top Left: Player Hull Health */}
+      <div className="absolute top-4 left-4 z-30 flex items-center gap-2 pointer-events-auto">
+        <img
+          src="/assets/png/default/ui/hud/icon_heart.png"
+          alt="Heart"
+          className="w-10 h-10 object-contain shrink-0 pointer-events-none"
+        />
+        <div className="relative w-48 sm:w-54 h-10 flex items-center justify-center">
+          {/* Health Frame Asset */}
           <img
-            src="/assets/png/default/ui/hud/icon_heart.png"
-            alt="Heart"
-            className="h-5 w-5 object-contain"
+            src="/assets/png/default/ui/hud/health_frame.png"
+            alt="Health Frame"
+            className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
           />
-          <div className="flex flex-col space-y-1 w-32 sm:w-44">
-            <div className="flex justify-between text-[11px] font-bold font-mono">
-              <span className="text-secondary">HULL HEALTH</span>
-              <span className={playerHp < 30 ? 'text-red-400 animate-pulse' : 'text-emerald-400'}>
-                {playerHp}/{maxHp}
-              </span>
-            </div>
-            <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-              <div
-                className={`h-full transition-all duration-300 ${
-                  playerHp > 50
-                    ? 'bg-emerald-500'
-                    : playerHp > 25
-                      ? 'bg-amber-500'
-                      : 'bg-red-600 animate-pulse'
-                }`}
-                style={{ width: `${(playerHp / maxHp) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Center: Score & Time Counter Assets */}
-        <div className="flex items-center gap-3 bg-slate-900/90 px-4 py-1.5 rounded-xl border border-amber-900/60">
-          <div className="flex items-center gap-1.5 px-2 border-r border-amber-950/40">
-            <img
-              src="/assets/png/default/ui/hud/icon_score.png"
-              alt="Score"
-              className="h-4 w-4 object-contain"
-            />
-            <div className="text-xl font-black font-mono text-secondary">{score}</div>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-2">
-            <img
-              src="/assets/png/default/ui/hud/icon_time.png"
-              alt="Time"
-              className="h-4 w-4 object-contain"
-            />
-            <div className="text-xl font-black font-mono text-secondary">
-              {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Pause Control */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsPaused(true)}
-            className="h-8 text-xs border-amber-900/60 text-secondary hover:bg-amber-950/40"
+          {/* Health Fill Layer centered inside frame */}
+          <div
+            className="absolute inset-0 z-10 flex items-center overflow-hidden transition-all duration-300"
+            style={{ width: `${Math.max(0, Math.min(100, (playerHp / maxHp) * 100))}%` }}
           >
             <img
-              src="/assets/png/default/ui/controls/icon_pause.png"
-              alt="Pause"
-              className="h-3.5 w-3.5 mr-1 object-contain"
-            />{' '}
-            Pause
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Canvas Arena Container */}
-      <div className="relative flex-1 w-full h-full bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] flex items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 opacity-95" />
-
-        <div className="relative z-10 text-center space-y-3 max-w-md p-5 bg-slate-950/80 rounded-2xl border border-amber-900/60 backdrop-blur-md">
-          <div className="text-secondary font-sans text-xl font-black flex items-center justify-center gap-2">
-            <Navigation className="h-5 w-5 text-secondary animate-spin" /> PixiJS Arena Canvas
-          </div>
-          <p className="text-xs text-secondary/80">
-            Navigation active. Space/J for Front Attack. Q/E for Broadside Fire.
-          </p>
-
-          <div className="flex justify-center items-center gap-2 pt-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setScore((s) => s + 1)}
-              className="text-xs border-amber-600/50 text-secondary hover:bg-amber-900/40 h-8"
-            >
-              <Target className="h-3.5 w-3.5 mr-1" /> Destroy Enemy (+1)
-            </Button>
-
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleSimulateDamage}
-              className="text-xs h-8"
-            >
-              Take Damage (-25 HP)
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Weapons Cooldown HUD Bar */}
-      <div className="absolute bottom-3 left-0 right-0 z-30 px-4 flex justify-center pointer-events-auto">
-        <div className="flex items-center gap-3 bg-slate-950/90 px-4 py-2 rounded-xl border border-amber-900/60 backdrop-blur-md text-xs text-secondary">
-          {/* Front Cannon Cooldown */}
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-900 rounded border border-slate-800">
-            <img
-              src="/assets/png/default/ui/controls/icon_fire_front.png"
-              alt="Front Cannon"
-              className="h-4 w-4 object-contain"
+              src="/assets/png/default/ui/hud/health_fill_green.png"
+              alt="Health Fill"
+              className="h-full w-full object-fill"
             />
-            <div className="font-mono text-[11px]">
-              <span className="text-secondary/70">Front: </span>
-              {frontCooldown > 0 ? (
-                <span className="text-secondary font-bold">
-                  {(frontCooldown / 1000).toFixed(1)}s
-                </span>
-              ) : (
-                <span className="text-emerald-400 font-bold">READY</span>
-              )}
-            </div>
-          </div>
-
-          {/* Side Broadside Cooldown */}
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-slate-900 rounded border border-slate-800">
-            <img
-              src="/assets/png/default/ui/controls/icon_fire_left.png"
-              alt="Side Cannons"
-              className="h-4 w-4 object-contain"
-            />
-            <div className="font-mono text-[11px]">
-              <span className="text-secondary/70">Broadside: </span>
-              {sideCooldown > 0 ? (
-                <span className="text-secondary font-bold">
-                  {(sideCooldown / 1000).toFixed(1)}s
-                </span>
-              ) : (
-                <span className="text-emerald-400 font-bold">READY</span>
-              )}
-            </div>
+            <p className="absolute text-xs shadow-sm font-bold left-1/2 transform -translate-x-1/2">{`${playerHp}/${maxHp}`}</p>
           </div>
         </div>
       </div>
 
-      {/* Pause Menu Modal */}
+      {/* 2. Top Right: Score, Time & Pause Control */}
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-3 pointer-events-auto">
+        <CounterPanel
+          icon="/assets/png/default/ui/hud/icon_score.png"
+          value={score}
+          title="Sunk Ships Score"
+        />
+
+        <CounterPanel
+          icon="/assets/png/default/ui/hud/icon_time.png"
+          value={`${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`}
+          title="Time Remaining"
+        />
+
+        <RoundedButton size="lg" onClick={handlePauseToggle} title="Pause Game (P / Esc)">
+          <img
+            src="/assets/png/default/ui/controls/icon_pause.png"
+            alt="Pause"
+            className="w-5 h-5 object-contain pointer-events-none"
+          />
+        </RoundedButton>
+      </div>
+
+      {/* 2. Main PixiJS Arena Canvas Container */}
+      <div className="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center">
+        <div ref={canvasContainerRef} className="absolute inset-0 w-full h-full overflow-hidden" />
+      </div>
+
+      {/* 3. Weapons & Touch Controls HUD Bar (No wrapper background, middle button 50% higher) */}
+      <div className="absolute bottom-4 left-0 right-0 z-30 px-6 flex justify-between items-end pointer-events-auto">
+        {/* Steering Controls (Left / Forward / Right) */}
+        <div className="flex items-end gap-1.5">
+          <RoundedButton
+            size="lg"
+            isPressed={activeInput.turnLeft}
+            onMouseDown={() => {
+              if (engineRef.current) engineRef.current.input.touchTurnLeft = true
+            }}
+            onMouseUp={() => {
+              if (engineRef.current) engineRef.current.input.touchTurnLeft = false
+            }}
+            onTouchStart={() => {
+              if (engineRef.current) engineRef.current.input.touchTurnLeft = true
+            }}
+            onTouchEnd={() => {
+              if (engineRef.current) engineRef.current.input.touchTurnLeft = false
+            }}
+            title="Turn Left (A / Left Arrow)"
+          >
+            <img
+              src="/assets/png/default/ui/controls/icon_turn_left.png"
+              alt="Left"
+              className="w-5 h-5 object-contain pointer-events-none"
+            />
+          </RoundedButton>
+
+          {/* Middle Button (Forward) shifted 50% (22px) UP */}
+          <div className="-translate-y-[22px]">
+            <RoundedButton
+              size="lg"
+              isPressed={activeInput.moveForward}
+              onMouseDown={() => {
+                if (engineRef.current) engineRef.current.input.touchMoveForward = true
+              }}
+              onMouseUp={() => {
+                if (engineRef.current) engineRef.current.input.touchMoveForward = false
+              }}
+              onTouchStart={() => {
+                if (engineRef.current) engineRef.current.input.touchMoveForward = true
+              }}
+              onTouchEnd={() => {
+                if (engineRef.current) engineRef.current.input.touchMoveForward = false
+              }}
+              title="Move Forward (W / Up Arrow)"
+            >
+              <img
+                src="/assets/png/default/ui/controls/icon_forward.png"
+                alt="Forward"
+                className="w-5 h-5 object-contain pointer-events-none"
+              />
+            </RoundedButton>
+          </div>
+
+          <RoundedButton
+            size="lg"
+            isPressed={activeInput.turnRight}
+            onMouseDown={() => {
+              if (engineRef.current) engineRef.current.input.touchTurnRight = true
+            }}
+            onMouseUp={() => {
+              if (engineRef.current) engineRef.current.input.touchTurnRight = false
+            }}
+            onTouchStart={() => {
+              if (engineRef.current) engineRef.current.input.touchTurnRight = true
+            }}
+            onTouchEnd={() => {
+              if (engineRef.current) engineRef.current.input.touchTurnRight = false
+            }}
+            title="Turn Right (D / Right Arrow)"
+          >
+            <img
+              src="/assets/png/default/ui/controls/icon_turn_right.png"
+              alt="Right"
+              className="w-5 h-5 object-contain pointer-events-none"
+            />
+          </RoundedButton>
+        </div>
+
+        {/* Weapons Attack Buttons (Left Broadside / Front Cannon / Right Broadside) */}
+        <div className="flex items-end gap-1.5">
+          {/* Left Broadside */}
+          <div className="relative">
+            <RoundedButton
+              size="lg"
+              isPressed={activeInput.fireLeft}
+              onClick={() => engineRef.current?.fireLeftBroadside()}
+              title="Left Broadside (Q / U)"
+            >
+              <img
+                src="/assets/png/default/ui/controls/icon_fire_left.png"
+                alt="Fire Left"
+                className="w-5 h-5 object-contain pointer-events-none"
+              />
+            </RoundedButton>
+            {leftCooldown > 0 && (
+              <div
+                className="absolute inset-0.5 rounded-full pointer-events-none z-20 flex items-center justify-center overflow-hidden"
+                style={{
+                  background: `conic-gradient(rgba(0, 0, 0, 0.75) ${Math.min(
+                    360,
+                    (leftCooldown / DEFAULT_BALANCE_CONFIG.sideWeapon.cooldown) * 360,
+                  )}deg, transparent 0deg)`,
+                }}
+              >
+                <span className="text-[9px] font-mono font-black text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  {leftCooldown.toFixed(1)}s
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Front Cannon - shifted 50% (22px) UP */}
+          <div className="relative -translate-y-[22px]">
+            <RoundedButton
+              size="lg"
+              isPressed={activeInput.fireFront}
+              onClick={() => engineRef.current?.fireFrontWeapon()}
+              title="Front Attack (Space / J)"
+            >
+              <img
+                src="/assets/png/default/ui/controls/icon_fire_front.png"
+                alt="Front Cannon"
+                className="w-5 h-5 object-contain pointer-events-none"
+              />
+            </RoundedButton>
+            {frontCooldown > 0 && (
+              <div
+                className="absolute inset-0.5 rounded-full pointer-events-none z-20 flex items-center justify-center overflow-hidden"
+                style={{
+                  background: `conic-gradient(rgba(0, 0, 0, 0.75) ${Math.min(
+                    360,
+                    (frontCooldown / DEFAULT_BALANCE_CONFIG.frontWeapon.cooldown) * 360,
+                  )}deg, transparent 0deg)`,
+                }}
+              >
+                <span className="text-[9px] font-mono font-black text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  {frontCooldown.toFixed(1)}s
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Broadside */}
+          <div className="relative">
+            <RoundedButton
+              size="lg"
+              isPressed={activeInput.fireRight}
+              onClick={() => engineRef.current?.fireRightBroadside()}
+              title="Right Broadside (E / I)"
+            >
+              <img
+                src="/assets/png/default/ui/controls/icon_fire_right.png"
+                alt="Fire Right"
+                className="w-5 h-5 object-contain pointer-events-none"
+              />
+            </RoundedButton>
+            {rightCooldown > 0 && (
+              <div
+                className="absolute inset-0.5 rounded-full pointer-events-none z-20 flex items-center justify-center overflow-hidden"
+                style={{
+                  background: `conic-gradient(rgba(0, 0, 0, 0.75) ${Math.min(
+                    360,
+                    (rightCooldown / DEFAULT_BALANCE_CONFIG.sideWeapon.cooldown) * 360,
+                  )}deg, transparent 0deg)`,
+                }}
+              >
+                <span className="text-[9px] font-mono font-black text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  {rightCooldown.toFixed(1)}s
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Pause Menu Modal */}
       {isPaused && !isGameOver && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-950 border border-amber-900/80 rounded-xl p-5 w-full max-w-sm text-center space-y-5">
-            <div className="space-y-1">
-              <h2 className="text-xl font-black font-sans text-secondary">GAME PAUSED</h2>
-              <p className="text-xs text-secondary/70">Simulation suspended</p>
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
+          <WoodenPanel className="max-w-md">
+            <div className="py-4 px-8 flex flex-col items-center gap-4 w-full">
+              <h2 className="text-2xl sm:text-3xl font-black font-sans text-secondary tracking-wider uppercase">
+                PAUSED
+              </h2>
+              <span className="text-sm font-sans text-secondary/80 font-bold -mt-2">
+                Ready when you are
+              </span>
+
+              <div className="w-52 flex flex-col items-center gap-2 mt-2">
+                <WoodenButton
+                  variant="primary"
+                  onClick={handleResume}
+                  className="w-full py-4 pb-3.5"
+                >
+                  RESUME
+                </WoodenButton>
+
+                {/* we cant go to options here because the game already started */}
+                <WoodenButton
+                  variant="primary"
+                  onClick={handleRestart}
+                  className="w-full py-4 pb-3.5"
+                >
+                  RESTART
+                </WoodenButton>
+
+                <WoodenButton
+                  variant="primary"
+                  onClick={onExitToMenu}
+                  className="w-full py-4 pb-3.5"
+                >
+                  MAIN MENU
+                </WoodenButton>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Button
-                variant="pirate"
-                onClick={() => setIsPaused(false)}
-                className="w-full h-10 text-sm text-primary"
-              >
-                <Play className="h-4 w-4 mr-2 fill-primary" /> Resume Game
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleRestart}
-                className="w-full border-amber-900/60 text-secondary hover:text-white h-9 text-xs"
-              >
-                <RotateCcw className="h-3.5 w-3.5 mr-1.5 text-secondary" /> Restart Match
-              </Button>
-
-              <Button variant="destructive" onClick={onExitToMenu} className="w-full h-9 text-xs">
-                <Home className="h-3.5 w-3.5 mr-1.5" /> Exit to Main Menu
-              </Button>
-            </div>
-          </div>
+          </WoodenPanel>
         </div>
       )}
 
-      {/* Result Modal */}
+      {/* 5. Result Modal */}
       <ResultModal
         open={isGameOver}
         matchResult={matchResult}
