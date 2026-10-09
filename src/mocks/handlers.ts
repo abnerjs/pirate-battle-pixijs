@@ -9,7 +9,10 @@ const HISTORY_KEY = 'pirate_battle_history_db_v3'
 function getStoredRanking(): RankingEntry[] {
   try {
     const raw = localStorage.getItem(RANKING_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
   } catch (e) {
     console.error('Failed to load ranking from storage', e)
   }
@@ -28,7 +31,10 @@ function saveStoredRanking(data: RankingEntry[]) {
 function getStoredHistory(): MatchHistoryEntry[] {
   try {
     const raw = localStorage.getItem(HISTORY_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
   } catch (e) {
     console.error('Failed to load history from storage', e)
   }
@@ -95,12 +101,26 @@ export const handlers = [
 
     if (gameSessionTimeParam) {
       const sessionT = parseInt(gameSessionTimeParam, 10)
-      ranking = ranking.filter((r) => r.config.gameSessionTime === sessionT)
+      const filtered = ranking.filter(
+        (r) =>
+          !r.config ||
+          r.config.gameSessionTime === undefined ||
+          r.config.gameSessionTime === sessionT,
+      )
+      if (filtered.length > 0) {
+        ranking = filtered
+      }
     }
 
     if (enemySpawnTimeParam) {
       const spawnT = parseFloat(enemySpawnTimeParam)
-      ranking = ranking.filter((r) => r.config.enemySpawnTime === spawnT)
+      const filtered = ranking.filter(
+        (r) =>
+          !r.config || r.config.enemySpawnTime === undefined || r.config.enemySpawnTime === spawnT,
+      )
+      if (filtered.length > 0) {
+        ranking = filtered
+      }
     }
 
     // Sort deterministically: score desc, duration desc, date asc

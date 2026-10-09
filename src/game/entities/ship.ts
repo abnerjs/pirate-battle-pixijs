@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, Texture } from 'pixi.js'
+import type { IslandObstacle } from '@/types/game'
 
 export interface ShipOptions {
   x: number
@@ -241,6 +242,68 @@ export class Ship {
     if (this.isDead) return
     this.rotation = angle
     this.sprite.rotation = angle + Math.PI
+  }
+
+  /**
+   * Smoothly steers the ship's rotation towards a target angle.
+   */
+  public steerTowards(targetAngle: number, deltaSeconds: number, rotationSpeed: number) {
+    let angleDiff = targetAngle - this.rotation
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2
+
+    const rotStep = rotationSpeed * deltaSeconds
+    if (Math.abs(angleDiff) < rotStep) {
+      this.rotation = targetAngle
+    } else {
+      this.rotation += Math.sign(angleDiff) * rotStep
+    }
+    this.setRotation(this.rotation)
+  }
+
+  /**
+   * Clamps ship coordinates within finite arena boundaries.
+   */
+  public clampToArena(
+    x: number,
+    y: number,
+    arenaWidth: number,
+    arenaHeight: number,
+  ): { x: number; y: number } {
+    if (arenaWidth >= 1e6) return { x, y }
+    const margin = this.radius
+    const clampedX = Math.max(margin, Math.min(arenaWidth - margin, x))
+    const clampedY = Math.max(margin, Math.min(arenaHeight - margin, y))
+    return { x: clampedX, y: clampedY }
+  }
+
+  /**
+   * Resolves physical collisions with island obstacles and pushes ship away.
+   */
+  public resolveObstacleCollisions(
+    targetX: number,
+    targetY: number,
+    obstacles: IslandObstacle[],
+  ): { x: number; y: number; collided: boolean } {
+    let resX = targetX
+    let resY = targetY
+    let collided = false
+
+    obstacles.forEach((obs) => {
+      const dx = resX - obs.x
+      const dy = resY - obs.y
+      const dist = Math.hypot(dx, dy)
+      const minDist = this.radius + obs.radius
+
+      if (dist < minDist && dist > 0) {
+        collided = true
+        const overlap = minDist - dist
+        resX += (dx / dist) * overlap
+        resY += (dy / dist) * overlap
+      }
+    })
+
+    return { x: resX, y: resY, collided }
   }
 
   public destroy(parentContainer: Container) {

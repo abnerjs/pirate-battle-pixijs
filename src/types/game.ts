@@ -34,6 +34,12 @@ export type NetworkScenario =
   | 'timeout'
   | 'delayed_post'
 
+export interface IslandObstacle {
+  x: number
+  y: number
+  radius: number
+}
+
 export interface PaginatedResponse<T> {
   data: T[]
   total: number

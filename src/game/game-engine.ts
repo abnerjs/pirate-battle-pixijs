@@ -10,7 +10,6 @@ import { Projectile } from './entities/projectile'
 import { ShooterEnemy } from './entities/shooter-enemy'
 import { InputController, type InputState } from './input/input-controller'
 import { ChunkManager } from './map/chunk-manager'
-import { generateMap, type MapData } from './map/map-generator'
 import { GarbageCollector } from './systems/garbage-collector'
 
 export interface GameEngineCallbacks {
@@ -32,9 +31,9 @@ export interface GameEngineCallbacks {
 export class GameEngine {
   public app: Application | null = null
   public input: InputController
-  public mapData: MapData | null = null
   public chunkManager: ChunkManager | null = null
   public player: PlayerShip | null = null
+
   public enemies: (ChaserEnemy | ShooterEnemy)[] = []
   public projectiles: Projectile[] = []
   public effects: EffectsManager | null = null
@@ -108,10 +107,6 @@ export class GameEngine {
 
     // Instantiate Infinite Procedural Chunk Manager
     this.chunkManager = new ChunkManager(this.mapContainer)
-    this.mapData = generateMap(
-      DEFAULT_BALANCE_CONFIG.arenaWidth,
-      DEFAULT_BALANCE_CONFIG.arenaHeight,
-    )
 
     // Create Player Ship
     const pSpawn = { x: 2400, y: 1800 }
@@ -226,7 +221,7 @@ export class GameEngine {
     // Dynamically update active map chunks around player position
     const activeObstacles = this.chunkManager
       ? this.chunkManager.updatePlayerPosition(this.player.x, this.player.y).obstacles
-      : this.mapData?.obstacles || []
+      : []
 
     const infiniteBound = 1e8 // Infinite world bounds
 

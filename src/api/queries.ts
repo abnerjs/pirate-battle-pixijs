@@ -93,6 +93,8 @@ export function saveOfflineMatchResult(match: MatchHistoryEntry) {
   }
 }
 
+import { INITIAL_HISTORY_FIXTURES, INITIAL_RANKING_FIXTURES } from '@/mocks/fixtures'
+
 export function getOfflineRanking(
   page = 1,
   limit = 5,
@@ -104,18 +106,35 @@ export function getOfflineRanking(
     const rawRanking = localStorage.getItem(rankingKey)
     let ranking = rawRanking ? JSON.parse(rawRanking) : []
 
+    if (!Array.isArray(ranking) || ranking.length === 0) {
+      ranking = INITIAL_RANKING_FIXTURES
+      try {
+        localStorage.setItem(rankingKey, JSON.stringify(INITIAL_RANKING_FIXTURES))
+      } catch (_e) {}
+    }
+
     if (gameSessionTime !== undefined) {
-      ranking = ranking.filter(
+      const filtered = ranking.filter(
         (r: { config?: { gameSessionTime?: number } }) =>
-          r.config?.gameSessionTime === gameSessionTime,
+          !r.config ||
+          r.config.gameSessionTime === undefined ||
+          r.config.gameSessionTime === gameSessionTime,
       )
+      if (filtered.length > 0) {
+        ranking = filtered
+      }
     }
 
     if (enemySpawnTime !== undefined) {
-      ranking = ranking.filter(
+      const filtered = ranking.filter(
         (r: { config?: { enemySpawnTime?: number } }) =>
-          r.config?.enemySpawnTime === enemySpawnTime,
+          !r.config ||
+          r.config.enemySpawnTime === undefined ||
+          r.config.enemySpawnTime === enemySpawnTime,
       )
+      if (filtered.length > 0) {
+        ranking = filtered
+      }
     }
 
     ranking.sort(
@@ -143,7 +162,13 @@ export function getOfflineRanking(
     }
   } catch (e) {
     console.error('Failed to get offline ranking', e)
-    return { data: [], total: 0, page: 1, limit, totalPages: 1 }
+    return {
+      data: INITIAL_RANKING_FIXTURES.slice(0, limit),
+      total: INITIAL_RANKING_FIXTURES.length,
+      page: 1,
+      limit,
+      totalPages: Math.ceil(INITIAL_RANKING_FIXTURES.length / limit),
+    }
   }
 }
 
@@ -151,7 +176,14 @@ export function getOfflineMatchHistory(page = 1, limit = 5) {
   try {
     const historyKey = 'pirate_battle_history_db_v3'
     const rawHistory = localStorage.getItem(historyKey)
-    const history: MatchHistoryEntry[] = rawHistory ? JSON.parse(rawHistory) : []
+    let history: MatchHistoryEntry[] = rawHistory ? JSON.parse(rawHistory) : []
+
+    if (!Array.isArray(history) || history.length === 0) {
+      history = INITIAL_HISTORY_FIXTURES
+      try {
+        localStorage.setItem(historyKey, JSON.stringify(INITIAL_HISTORY_FIXTURES))
+      } catch (_e) {}
+    }
 
     history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -169,7 +201,13 @@ export function getOfflineMatchHistory(page = 1, limit = 5) {
     }
   } catch (e) {
     console.error('Failed to get offline match history', e)
-    return { data: [], total: 0, page: 1, limit, totalPages: 1 }
+    return {
+      data: INITIAL_HISTORY_FIXTURES.slice(0, limit),
+      total: INITIAL_HISTORY_FIXTURES.length,
+      page: 1,
+      limit,
+      totalPages: Math.ceil(INITIAL_HISTORY_FIXTURES.length / limit),
+    }
   }
 }
 

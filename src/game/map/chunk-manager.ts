@@ -1,11 +1,7 @@
 import { Container, Sprite, Texture } from 'pixi.js'
+import type { IslandObstacle } from '@/types/game'
 
-export interface IslandObstacle {
-  x: number
-  y: number
-  radius: number
-}
-
+export type { IslandObstacle }
 export type IslandType = 'sand' | 'grass'
 
 export interface CellData {

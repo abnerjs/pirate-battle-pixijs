@@ -1,6 +1,6 @@
 import { Container, Sprite, Text, Texture } from 'pixi.js'
+import type { IslandObstacle } from '@/types/game'
 import { DEFAULT_BALANCE_CONFIG } from '../config/game-config'
-import type { IslandObstacle } from '../map/map-generator'
 import { Projectile } from './projectile'
 import { Ship } from './ship'
 
@@ -164,29 +164,15 @@ export class PlayerShip extends Ship {
       nextY += vy
     }
 
-    if (arenaWidth < 1e6) {
-      const margin = this.radius
-      nextX = Math.max(margin, Math.min(arenaWidth - margin, nextX))
-      nextY = Math.max(margin, Math.min(arenaHeight - margin, nextY))
+    ;({ x: nextX, y: nextY } = this.clampToArena(nextX, nextY, arenaWidth, arenaHeight))
+
+    const collision = this.resolveObstacleCollisions(nextX, nextY, obstacles)
+    nextX = collision.x
+    nextY = collision.y
+    if (collision.collided) {
+      // Dampen momentum speed slightly on obstacle collision
+      this.currentSpeed *= 0.5
     }
-
-    obstacles.forEach((obs) => {
-      const dx = nextX - obs.x
-      const dy = nextY - obs.y
-      const dist = Math.hypot(dx, dy)
-      const minDist = this.radius + obs.radius
-
-      if (dist < minDist && dist > 0) {
-        const overlap = minDist - dist
-        const nx = dx / dist
-        const ny = dy / dist
-
-        nextX += nx * overlap
-        nextY += ny * overlap
-        // Dampen momentum speed slightly on obstacle collision
-        this.currentSpeed *= 0.5
-      }
-    })
 
     this.setPosition(nextX, nextY)
   }

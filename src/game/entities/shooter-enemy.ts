@@ -1,5 +1,5 @@
+import type { IslandObstacle } from '@/types/game'
 import { DEFAULT_BALANCE_CONFIG } from '../config/game-config'
-import type { IslandObstacle } from '../map/map-generator'
 import { Projectile } from './projectile'
 import { Ship } from './ship'
 
@@ -41,17 +41,7 @@ export class ShooterEnemy extends Ship {
     const distance = Math.hypot(dx, dy)
     const targetAngle = Math.atan2(dx, -dy)
 
-    let angleDiff = targetAngle - this.rotation
-    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2
-    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2
-
-    const rotStep = this.rotationSpeed * deltaSeconds
-    if (Math.abs(angleDiff) < rotStep) {
-      this.rotation = targetAngle
-    } else {
-      this.rotation += Math.sign(angleDiff) * rotStep
-    }
-    this.setRotation(this.rotation)
+    this.steerTowards(targetAngle, deltaSeconds, this.rotationSpeed)
 
     let nextX = this.x
     let nextY = this.y
@@ -61,21 +51,8 @@ export class ShooterEnemy extends Ship {
       nextY -= Math.cos(this.rotation) * this.speed * deltaSeconds
     }
 
-    if (arenaWidth < 1e6) {
-      const margin = this.radius
-      nextX = Math.max(margin, Math.min(arenaWidth - margin, nextX))
-      nextY = Math.max(margin, Math.min(arenaHeight - margin, nextY))
-    }
-
-    obstacles.forEach((obs) => {
-      const dist = Math.hypot(nextX - obs.x, nextY - obs.y)
-      const minDist = this.radius + obs.radius
-      if (dist < minDist && dist > 0) {
-        const overlap = minDist - dist
-        nextX += ((nextX - obs.x) / dist) * overlap
-        nextY += ((nextY - obs.y) / dist) * overlap
-      }
-    })
+    ;({ x: nextX, y: nextY } = this.clampToArena(nextX, nextY, arenaWidth, arenaHeight))
+    ;({ x: nextX, y: nextY } = this.resolveObstacleCollisions(nextX, nextY, obstacles))
 
     this.setPosition(nextX, nextY)
 

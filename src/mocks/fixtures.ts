@@ -129,7 +129,7 @@ export const INITIAL_RANKING_FIXTURES: RankingEntry[] = [
     config: { gameSessionTime: 120, enemySpawnTime: 3 },
   },
 
-  // Fixtures for other option configurations
+  // Fixtures for other option configurations (60s, 90s, 180s and 1s, 3s, 5s spawns)
   {
     id: 'rank-15',
     playerId: 'speedysam',
