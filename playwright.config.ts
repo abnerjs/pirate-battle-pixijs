@@ -11,15 +11,24 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    launchOptions: {
+      executablePath: '/usr/bin/google-chrome',
+    },
   },
   projects: [
     {
       name: 'chromium-desktop',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: { executablePath: '/usr/bin/google-chrome' },
+      },
     },
     {
       name: 'chromium-mobile',
-      use: { ...devices['Pixel 5'] },
+      use: {
+        ...devices['Pixel 5'],
+        launchOptions: { executablePath: '/usr/bin/google-chrome' },
+      },
     },
   ],
   webServer: {

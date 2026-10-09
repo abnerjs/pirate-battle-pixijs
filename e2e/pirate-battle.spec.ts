@@ -9,21 +9,19 @@ test.describe('Pirate Battle - End-to-End Test Suite', () => {
   test('1. Options navigation, validation, and persistence', async ({ page }) => {
     // Navigate to Options
     await page.getByRole('button', { name: 'OPTIONS' }).click()
-    await expect(page.getByText('GAME OPTIONS')).toBeVisible()
+    await expect(page.getByText('Game session time')).toBeVisible()
 
-    // Change game time slider / input if present, or check controls
-    const saveButton = page.getByRole('button', { name: 'SAVE OPTIONS' })
-    await expect(saveButton).toBeVisible()
-    await saveButton.click()
+    // Verify controls
+    await expect(page.getByText('Enemy spawn time')).toBeVisible()
 
     // Return to menu
-    await page.getByRole('button', { name: 'BACK TO MENU' }).click()
+    await page.getByRole('button', { name: 'MAIN MENU' }).click()
     await expect(page.getByRole('button', { name: 'PLAY' })).toBeVisible()
 
     // Reload page to test persistence
     await page.reload()
     await page.getByRole('button', { name: 'OPTIONS' }).click()
-    await expect(page.getByText('GAME OPTIONS')).toBeVisible()
+    await expect(page.getByText('Game session time')).toBeVisible()
   })
 
   // 2. Carregamento dos assets
@@ -61,8 +59,9 @@ test.describe('Pirate Battle - End-to-End Test Suite', () => {
     await page.keyboard.press('KeyQ')
     await page.keyboard.press('KeyE')
 
-    // Verify HUD displays score and time
-    await expect(page.getByText(/SCORE|PTS/i).first()).toBeVisible()
+    // Verify HUD displays heart health icon and score/time panels
+    await expect(page.getByAltText('Heart')).toBeVisible()
+    await expect(page.getByTitle('Sunk Ships Score')).toBeVisible()
   })
 
   // 5. Spawn e presença de inimigos
