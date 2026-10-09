@@ -48,7 +48,7 @@ export const OptionsScreen: React.FC<OptionsScreenProps> = ({ onBackToMenu }) =>
   return (
     <div className="flex items-center justify-center w-full h-full p-4">
       <WoodenPanel>
-        <div className="flex flex-col justify-center items-center h-full px-40 py-12 gap-2">
+        <div className="flex flex-col justify-center items-center h-full px-4 sm:px-12 md:px-20 py-6 sm:py-12 gap-2">
           {/* Title */}
           <h2 className="text-3xl font-black font-sans text-secondary tracking-wider uppercase">
             OPTIONS

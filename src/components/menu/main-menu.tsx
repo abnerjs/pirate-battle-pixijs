@@ -56,7 +56,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
       {currentView === 'menu' && (
         <div className="relative z-20 flex items-center justify-center p-4">
           <WoodenPanel className="max-h-[92vh]">
-            <div className="pb-4 pt-2 px-20 flex flex-col items-center gap-2">
+            <div className="pb-4 pt-2 px-4 sm:px-12 md:px-20 flex flex-col items-center gap-2">
               {/* Pirate Battle Title Logo Asset */}
               <div className="flex flex-col items-center">
                 <img
