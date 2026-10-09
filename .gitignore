@@ -14,3 +14,7 @@ dist/
 
 # Logs
 *.log
+
+# Playwright Test Outputs
+playwright-report/
+test-results/
