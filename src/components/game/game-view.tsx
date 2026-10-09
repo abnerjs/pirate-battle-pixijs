@@ -165,61 +165,59 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-slate-950 flex flex-col justify-between select-none">
-      {/* 1. Top Left: Player Hull Health */}
-      <div className="absolute top-4 left-4 z-30 flex items-center gap-2 pointer-events-auto">
-        <img
-          src="/assets/png/default/ui/hud/icon_heart.png"
-          alt="Heart"
-          className="w-10 h-10 object-contain shrink-0 pointer-events-none"
-        />
-        <div className="relative w-48 sm:w-54 h-10 flex items-center justify-center">
-          {/* Health Frame Asset */}
+      {/* Top HUD Header: Mobile flex-col-reverse (time & pause above health), SM+: flex-row justify-between */}
+      <div className="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-30 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 pointer-events-none">
+        {/* Left / Bottom on Mobile: Player Hull Health */}
+        <div className="flex items-center gap-2 pointer-events-auto self-start">
           <img
-            src="/assets/png/default/ui/hud/health_frame.png"
-            alt="Health Frame"
-            className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
+            src="/assets/png/default/ui/hud/icon_heart.png"
+            alt="Heart"
+            className="w-9 h-9 sm:w-10 sm:h-10 object-contain shrink-0 pointer-events-none"
           />
-          {/* Health Fill Layer centered inside frame */}
-          <div
-            className="absolute inset-0 z-10 flex items-center overflow-hidden transition-all duration-300"
-            style={{ width: `${Math.max(0, Math.min(100, (playerHp / maxHp) * 100))}%` }}
-          >
+          <div className="relative w-44 sm:w-54 h-9 sm:h-10 flex items-center justify-center">
+            {/* Health Frame Asset */}
             <img
-              src="/assets/png/default/ui/hud/health_fill_green.png"
-              alt="Health Fill"
-              className="h-full w-full object-fill"
+              src="/assets/png/default/ui/hud/health_frame.png"
+              alt="Health Frame"
+              className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
             />
-            <p className="absolute text-xs shadow-sm font-bold left-1/2 transform -translate-x-1/2">{`${playerHp}/${maxHp}`}</p>
+            {/* Health Fill Layer centered inside frame */}
+            <div
+              className="absolute inset-0 z-10 flex items-center overflow-hidden transition-all duration-300"
+              style={{ width: `${Math.max(0, Math.min(100, (playerHp / maxHp) * 100))}%` }}
+            >
+              <img
+                src="/assets/png/default/ui/hud/health_fill_green.png"
+                alt="Health Fill"
+                className="h-full w-full object-fill"
+              />
+              <p className="absolute text-xs shadow-sm font-bold left-1/2 transform -translate-x-1/2">{`${playerHp}/${maxHp}`}</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 2. Top Right: Score, Time & Pause Control */}
-      <div className="absolute top-4 right-4 z-30 flex items-center gap-3 pointer-events-auto">
-        <CounterPanel
-          icon="/assets/png/default/ui/hud/icon_score.png"
-          value={score}
-          title="Sunk Ships Score"
-        />
-
-        <CounterPanel
-          icon="/assets/png/default/ui/hud/icon_time.png"
-          value={`${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`}
-          title="Time Remaining"
-        />
-
-        <RoundedButton size="lg" onClick={handlePauseToggle} title="Pause Game (P / Esc)">
-          <img
-            src="/assets/png/default/ui/controls/icon_pause.png"
-            alt="Pause"
-            className="w-5 h-5 object-contain pointer-events-none"
+        {/* Right / Top on Mobile: Score, Time & Pause Control */}
+        <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto self-end sm:self-center flex-wrap sm:flex-nowrap justify-end">
+          <CounterPanel
+            icon="/assets/png/default/ui/hud/icon_score.png"
+            value={score}
+            title="Sunk Ships Score"
           />
-        </RoundedButton>
-      </div>
 
-      {/* 2. Main PixiJS Arena Canvas Container */}
-      <div className="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center">
-        <div ref={canvasContainerRef} className="absolute inset-0 w-full h-full overflow-hidden" />
+          <CounterPanel
+            icon="/assets/png/default/ui/hud/icon_time.png"
+            value={`${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')}`}
+            title="Time Remaining"
+          />
+
+          <RoundedButton size="lg" onClick={handlePauseToggle} title="Pause Game (P / Esc)">
+            <img
+              src="/assets/png/default/ui/controls/icon_pause.png"
+              alt="Pause"
+              className="w-5 h-5 object-contain pointer-events-none"
+            />
+          </RoundedButton>
+        </div>
       </div>
 
       {/* 3. Weapons & Touch Controls HUD Bar (No wrapper background, middle button 50% higher) */}
@@ -401,9 +399,9 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
 
       {/* 4. Pause Menu Modal */}
       {isPaused && !isGameOver && (
-        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
-          <WoodenPanel className="max-w-md">
-            <div className="py-4 px-8 flex flex-col items-center gap-4 w-full">
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <WoodenPanel className="w-[calc(100vw-1rem)] max-w-md">
+            <div className="py-3 sm:py-4 px-2 sm:px-8 flex flex-col items-center gap-3 sm:gap-4 w-full">
               <h2 className="text-2xl sm:text-3xl font-black font-sans text-secondary tracking-wider uppercase">
                 PAUSED
               </h2>
@@ -441,6 +439,11 @@ export const GameView: React.FC<GameViewProps> = ({ config, onExitToMenu }) => {
           </WoodenPanel>
         </div>
       )}
+
+      {/* 2. Main PixiJS Arena Canvas Container */}
+      <div className="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center">
+        <div ref={canvasContainerRef} className="absolute inset-0 w-full h-full overflow-hidden" />
+      </div>
 
       {/* 5. Result Modal */}
       <ResultModal

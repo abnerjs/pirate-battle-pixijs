@@ -1,6 +1,5 @@
 import { DEFAULT_BALANCE_CONFIG } from '../config/game-config'
 import type { IslandObstacle } from '../map/map-generator'
-import type { PlayerShip } from './player-ship'
 import { Ship } from './ship'
 
 export class ChaserEnemy extends Ship {
@@ -8,15 +7,20 @@ export class ChaserEnemy extends Ship {
   public rotationSpeed: number
   public collisionDamage: number
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, variant?: number) {
+    const v = variant || Math.floor(Math.random() * 4) + 1
     super({
       x,
       y,
       rotation: Math.random() * Math.PI * 2,
       maxHp: DEFAULT_BALANCE_CONFIG.chaser.maxHp,
-      shipTexturePath: '/assets/png/default/ships/ship_15.png',
+      shipTexturePath: `/assets/png/retina/ships/ship_${v}.png`,
+      variant: v,
       isPlayer: false,
     })
+
+    this.container.scale.set(0.5)
+    this.radius = DEFAULT_BALANCE_CONFIG.chaser.collisionRadius
 
     this.speed = DEFAULT_BALANCE_CONFIG.chaser.speed
     this.rotationSpeed = DEFAULT_BALANCE_CONFIG.chaser.rotationSpeed
@@ -25,12 +29,12 @@ export class ChaserEnemy extends Ship {
 
   public update(
     deltaSeconds: number,
-    target: PlayerShip,
+    target: Ship,
     obstacles: IslandObstacle[],
     arenaWidth: number,
     arenaHeight: number,
   ) {
-    if (this.isDestroyed || target.isDestroyed) return
+    if (this.isDestroyed || this.isDead || target.isDestroyed || target.isDead) return
 
     const dx = target.x - this.x
     const dy = target.y - this.y
@@ -51,9 +55,11 @@ export class ChaserEnemy extends Ship {
     let nextX = this.x + Math.sin(this.rotation) * this.speed * deltaSeconds
     let nextY = this.y - Math.cos(this.rotation) * this.speed * deltaSeconds
 
-    const margin = this.radius
-    nextX = Math.max(margin, Math.min(arenaWidth - margin, nextX))
-    nextY = Math.max(margin, Math.min(arenaHeight - margin, nextY))
+    if (arenaWidth < 1e6) {
+      const margin = this.radius
+      nextX = Math.max(margin, Math.min(arenaWidth - margin, nextX))
+      nextY = Math.max(margin, Math.min(arenaHeight - margin, nextY))
+    }
 
     obstacles.forEach((obs) => {
       const dist = Math.hypot(nextX - obs.x, nextY - obs.y)

@@ -53,20 +53,39 @@ In PixiJS v8, textures must be loaded into the `Assets` cache prior to creating 
 - **1-Second Camera Inertia (`src/game/game-engine.ts`)**: The camera follows the player with a 1-second inertia delay (smooth damping lerp `1 - exp(-3 * dt)`). When the ship changes speed or heading, the camera smoothly lags behind and catches up to match the ship's velocity after 1 second of steady movement.
 - **Dynamic Resize Without Game Reset**: A `ResizeObserver` monitors the container `div`. When the window/viewport resizes, `GameEngine.resize(width, height)` dynamically resizes the PixiJS renderer buffer and updates the camera viewport instantly without restarting the match or losing state.
 
-### Map Generator (`src/game/map/map-generator.ts`)
-- **Ocean Layer**: Tiled background using ocean water tile `/assets/png/default/tiles/tile_73.png`.
-- **Sandy Islands (`type: 'sand'`)**: Generated with custom non-rectangular patterns (L-shape, U-shape, irregular polygons):
-  - Outer Convex Corners: `tile_1` (TL), `tile_3` (TR), `tile_33` (BL), `tile_35` (BR).
-  - Straight Edges: `tile_2` (T), `tile_17` (L), `tile_19` (R), `tile_34` (B).
-  - Inner Concave Bends (Dobras de Canto): `tile_21` (TL), `tile_20` (TR), `tile_5` (BL), `tile_4` (BR).
-  - Inner Sand Fill: `tile_18` (pure sand) and `tile_68`, `tile_69` (sand with pebbles).
-  - Special Details (sparse, max 1 per island): `tile_81` (shipwreck), `tile_83` (war wreckage), `tile_85` (large rock), dynamically rotated (0°, 90°, 180°, 270°) to match edge orientation.
-- **Grass Islands (`type: 'grass'`)**: Larger non-rectangular islands with lush grass terrain:
-  - Outer Convex Corners: `tile_6` (TL), `tile_9` (TR), `tile_54` (BL), `tile_57` (BR).
-  - Straight Edges: `tile_7`/`tile_8` (T), `tile_22` (L), `tile_25`/`tile_41` (R), `tile_55`/`tile_56` (B).
-  - Inner Concave Bends (Dobras de Canto): `tile_53` (TL), `tile_52` (TR), `tile_37` (BL), `tile_36` (BR).
-  - Inner Grass Fill: `tile_23` (grass), `tile_24` (grass with flowers), `tile_39`/`tile_40` (grass with medium bushes).
-  - Special Details (sparse, max 1 per island): `tile_82` (shipwreck), `tile_84` (war wreckage), `tile_86` (large rock), dynamically rotated to match edge orientation.
+- **Procedural Infinite Chunk Manager (`src/game/map/chunk-manager.ts`)**:
+  - **Infinite 360° World Movement**: Ships (`PlayerShip`, `ChaserEnemy`, `ShooterEnemy`) and projectiles (`Projectile`) move without boundary limits in all directions (including negative `x` and `y` coordinates).
+  - **Quadrupled Island Density**: Runs up to 8 procedural island placement attempts per chunk (~85% probability per attempt), dense archipelago generation while enforcing strict 4-tile distance gap rules.
+  - **Percentage Damage State System ($n \in \{1, 2, 3, 4\}$)**: Dynamic ship textures update based on lost HP percentage:
+    - $n = 1$: 0% damage / 100% HP (sem dano)
+    - $n = 2$: 25% ou mais de dano ($25\% \le \text{dano} < 50\%$)
+    - $n = 3$: 50% ou mais de dano ($50\% \le \text{dano} < 100\%$)
+    - $n = 4$: 100% dano / 0 HP (morreu, não anda mais)
+  - **Result Modal Redesign (`src/components/menu/result-modal.tsx`)**: Formatted using standard `WoodenPanel` (9-slice wood frame). Displays fixed header `"Battle complete"`, final score in matching text size, `text-sm` time and end reason (`Time Up` or `Ship Destroyed`), and primary wooden buttons (`PLAY AGAIN` & `MAIN MENU`).
+  - **Deterministic Coordinate PRNG (`seedRandom(cx, cy)`)**: Each chunk uses a 32-bit coordinate-seeded pseudo-random number generator to ensure world consistency across visits.
+  - **Ocean Water Base Layer**: Tiled ocean background per chunk using `/assets/png/default/tiles/tile_73.png` scaled 2x to `256px` (`oceanTileSize = 256px`) for expansive, smooth ocean rendering.
+  - **Thick Island Shape Constraint**: All procedural island patterns are generated from solid 2D blocks with procedurally carved corner steps, enforcing a minimum thickness of 2+ tiles everywhere (no thin 1-tile strips or hollow ring shapes).
+  - **Minimum 4-Tile Gap Constraint Across Chunks**: Every island placement enforces a strict minimum distance buffer of at least 4 tiles between land cells of any two islands across chunk boundaries (1 submerged border tile for Island A + 1 submerged border tile for Island B + 2 open ocean water tiles in between), ensuring open navigable channels for naval combat.
+  - **Submerged Island Base Layer (Ilha Submersa sob Toda a Ilha)**:
+    - **Under All Land Cells**: Rendered with full submerged shallow water tile (`tile_27`) beneath all land sprites.
+    - **Coastal Water Border Ring**: Rendered on top of ocean tile 73 around island coastlines:
+      - Outer Corners: `tile_10` (TL), `tile_12` (TR), `tile_42` (BL), `tile_44` (BR).
+      - Straight Edges: `tile_11` (T), `tile_26` (L), `tile_28` (R), `tile_43` (B).
+      - Gulf / Cove Full Submerged Water: `tile_27` (water cell surrounded by 3+ land sides).
+      - Inner Bend Companions: `tile_75` (TL bend), `tile_74` (TR bend), `tile_59` (BL bend), `tile_58` (BR bend).
+  - **Sandy Island Autotiling (`type: 'sand'`)**: Smaller procedural islands (3-5 tiles wide/tall):
+    - Outer Convex Corners: `tile_1` (TL), `tile_3` (TR), `tile_33` (BL), `tile_35` (BR).
+    - Straight Edges: `tile_2` (T), `tile_17` (L), `tile_19` (R), `tile_34` (B).
+    - Inner Concave Bends (Dobras de Canto): `tile_21` (TL), `tile_20` (TR), `tile_5` (BL), `tile_4` (BR).
+    - Inner Sand Fill: `tile_18` (pure sand) and `tile_68`, `tile_69` (sand with pebbles).
+    - Special Details (sparse, max 1 per island): `tile_81` (shipwreck), `tile_83` (war wreckage), `tile_85` (large rock), dynamically rotated (0°, 90°, 180°, 270°) to match edge orientation.
+  - **Grass Island Autotiling (`type: 'grass'`)**: Larger procedural islands (5-7 tiles wide/tall):
+    - Outer Convex Corners: `tile_6` (TL), `tile_9` (TR), `tile_54` (BL), `tile_57` (BR).
+    - Straight Edges: `tile_7`/`tile_8` (T), `tile_22` (L), `tile_25`/`tile_41` (R), `tile_55`/`tile_56` (B).
+    - Inner Concave Bends (Dobras de Canto): `tile_53` (TL), `tile_52` (TR), `tile_37` (BL), `tile_36` (BR).
+    - Inner Grass Fill: `tile_23` (grass), `tile_24` (grass with flowers), `tile_39`/`tile_40` (grass with medium bushes).
+    - Special Details (sparse, max 1 per island): `tile_82` (shipwreck), `tile_84` (war wreckage), `tile_86` (large rock), dynamically rotated to match edge orientation.
+  - **2x Map Scaling**: Land and submerged tiles are rendered at `tileSize = 128px` (2x scale), while player and enemy ships remain at standard scale.
 
 ### Combat & Weapon System (`src/game/entities/player-ship.ts`)
 - **Front Cannon (Space)**: Single long-range forward projectile.

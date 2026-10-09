@@ -62,6 +62,37 @@ export function removePendingMatch(matchId: string) {
   }
 }
 
+export function saveOfflineMatchResult(match: MatchHistoryEntry) {
+  savePendingMatch(match)
+  try {
+    const historyKey = 'pirate_battle_history_db_v3'
+    const rawHistory = localStorage.getItem(historyKey)
+    const history: MatchHistoryEntry[] = rawHistory ? JSON.parse(rawHistory) : []
+    if (!history.some((h) => h.id === match.id)) {
+      history.unshift({ ...match, status: 'confirmed' })
+      localStorage.setItem(historyKey, JSON.stringify(history))
+    }
+
+    const rankingKey = 'pirate_battle_ranking_db_v3'
+    const rawRanking = localStorage.getItem(rankingKey)
+    const ranking = rawRanking ? JSON.parse(rawRanking) : []
+    if (!ranking.some((r: { id: string }) => r.id === match.id)) {
+      ranking.push({
+        id: match.id,
+        playerId: match.playerId,
+        playerName: match.playerName,
+        score: match.score,
+        duration: match.duration,
+        date: match.date,
+        config: match.config,
+      })
+      localStorage.setItem(rankingKey, JSON.stringify(ranking))
+    }
+  } catch (e) {
+    console.error('Failed to save match offline', e)
+  }
+}
+
 export function useSaveMatchMutation() {
   const queryClient = useQueryClient()
 
@@ -71,10 +102,9 @@ export function useSaveMatchMutation() {
         const result = await saveMatchResult(match)
         removePendingMatch(match.id)
         return result
-      } catch (err) {
-        // Save to pending queue if network request fails
-        savePendingMatch(match)
-        throw err
+      } catch (_err) {
+        saveOfflineMatchResult(match)
+        return match
       }
     },
     onSuccess: () => {

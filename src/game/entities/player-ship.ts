@@ -94,17 +94,28 @@ export class PlayerShip extends Ship {
     this.container.addChild(this.tutorialContainer)
   }
 
+  public resetTutorial() {
+    this.tutorialTimer = 3.0
+    this.tutorialElapsed = 0
+    if (this.tutorialContainer) {
+      this.tutorialContainer.visible = true
+      this.tutorialContainer.alpha = 1.0
+      this.tutorialContainer.scale.set(1.0)
+    }
+  }
+
   public update(
     deltaSeconds: number,
     inputs: { moveForward: boolean; turnLeft: boolean; turnRight: boolean },
     obstacles: IslandObstacle[],
     arenaWidth: number,
     arenaHeight: number,
+    isMenuMode = false,
   ) {
-    if (this.isDestroyed) return
+    if (this.isDestroyed || this.isDead || this.damageState === 4) return
 
     // Update 3-second tutorial prompts (pulsing disabled buttons around player ship)
-    if (this.tutorialTimer > 0 && this.tutorialContainer) {
+    if (!isMenuMode && this.tutorialTimer > 0 && this.tutorialContainer) {
       this.tutorialTimer -= deltaSeconds
       this.tutorialElapsed += deltaSeconds
 
@@ -153,9 +164,11 @@ export class PlayerShip extends Ship {
       nextY += vy
     }
 
-    const margin = this.radius
-    nextX = Math.max(margin, Math.min(arenaWidth - margin, nextX))
-    nextY = Math.max(margin, Math.min(arenaHeight - margin, nextY))
+    if (arenaWidth < 1e6) {
+      const margin = this.radius
+      nextX = Math.max(margin, Math.min(arenaWidth - margin, nextX))
+      nextY = Math.max(margin, Math.min(arenaHeight - margin, nextY))
+    }
 
     obstacles.forEach((obs) => {
       const dx = nextX - obs.x
@@ -196,12 +209,13 @@ export class PlayerShip extends Ship {
         damage: DEFAULT_BALANCE_CONFIG.frontWeapon.damage,
         lifetime: DEFAULT_BALANCE_CONFIG.frontWeapon.lifetime,
         owner: 'player',
+        sourceVariant: this.variant,
       }),
     ]
   }
 
   public fireLeftBroadside(): Projectile[] | null {
-    if (this.leftBroadsideTimer > 0 || this.isDestroyed) return null
+    if (this.leftBroadsideTimer > 0 || this.isDestroyed || this.isDead) return null
 
     this.leftBroadsideTimer = DEFAULT_BALANCE_CONFIG.sideWeapon.cooldown
     const leftAngle = this.rotation - Math.PI / 2
@@ -210,7 +224,7 @@ export class PlayerShip extends Ship {
   }
 
   public fireRightBroadside(): Projectile[] | null {
-    if (this.rightBroadsideTimer > 0 || this.isDestroyed) return null
+    if (this.rightBroadsideTimer > 0 || this.isDestroyed || this.isDead) return null
 
     this.rightBroadsideTimer = DEFAULT_BALANCE_CONFIG.sideWeapon.cooldown
     const rightAngle = this.rotation + Math.PI / 2
@@ -242,6 +256,7 @@ export class PlayerShip extends Ship {
           damage: sideWeapon.damage,
           lifetime: sideWeapon.lifetime,
           owner: 'player',
+          sourceVariant: this.variant,
         }),
       )
     })

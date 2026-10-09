@@ -43,9 +43,9 @@ export interface GameBalanceConfig {
 }
 
 export const DEFAULT_BALANCE_CONFIG: GameBalanceConfig = {
-  arenaWidth: 2400,
-  arenaHeight: 1800,
-  tileSize: 64,
+  arenaWidth: 4800,
+  arenaHeight: 3600,
+  tileSize: 128,
 
   playerMaxHp: 100,
   playerSpeed: 230,
@@ -53,7 +53,7 @@ export const DEFAULT_BALANCE_CONFIG: GameBalanceConfig = {
 
   frontWeapon: {
     cooldown: 0.6,
-    damage: 35,
+    damage: 25,
     speed: 550,
     lifetime: 2.0,
     spread: 0,
@@ -67,20 +67,20 @@ export const DEFAULT_BALANCE_CONFIG: GameBalanceConfig = {
   },
 
   chaser: {
-    maxHp: 40,
-    speed: 170,
-    rotationSpeed: 2.5,
-    collisionDamage: 30,
-    collisionRadius: 32,
+    maxHp: 25,
+    speed: 184, // 80% of player speed (230 * 0.8 = 184)
+    rotationSpeed: 3.2,
+    collisionDamage: 25,
+    collisionRadius: 14,
   },
   shooter: {
-    maxHp: 60,
-    speed: 120,
-    rotationSpeed: 2.0,
+    maxHp: 100,
+    speed: 60,
+    rotationSpeed: 1.0,
     attackRange: 380,
     desiredDistance: 280,
     fireCooldown: 2.0,
-    projectileDamage: 15,
+    projectileDamage: 8,
     projectileSpeed: 400,
     projectileLifetime: 2.2,
   },

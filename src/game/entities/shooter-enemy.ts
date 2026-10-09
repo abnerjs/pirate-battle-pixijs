@@ -1,6 +1,5 @@
 import { DEFAULT_BALANCE_CONFIG } from '../config/game-config'
 import type { IslandObstacle } from '../map/map-generator'
-import type { PlayerShip } from './player-ship'
 import { Projectile } from './projectile'
 import { Ship } from './ship'
 
@@ -9,13 +8,15 @@ export class ShooterEnemy extends Ship {
   public rotationSpeed: number
   public fireTimer = 0
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, variant?: number) {
+    const v = variant || Math.floor(Math.random() * 4) + 1
     super({
       x,
       y,
       rotation: Math.random() * Math.PI * 2,
       maxHp: DEFAULT_BALANCE_CONFIG.shooter.maxHp,
-      shipTexturePath: '/assets/png/default/ships/ship_3.png',
+      shipTexturePath: `/assets/png/retina/ships/ship_${v}.png`,
+      variant: v,
       isPlayer: false,
     })
 
@@ -26,12 +27,12 @@ export class ShooterEnemy extends Ship {
 
   public update(
     deltaSeconds: number,
-    target: PlayerShip,
+    target: Ship,
     obstacles: IslandObstacle[],
     arenaWidth: number,
     arenaHeight: number,
   ): Projectile | null {
-    if (this.isDestroyed || target.isDestroyed) return null
+    if (this.isDestroyed || this.isDead || target.isDestroyed || target.isDead) return null
 
     this.fireTimer += deltaSeconds
 
@@ -60,9 +61,11 @@ export class ShooterEnemy extends Ship {
       nextY -= Math.cos(this.rotation) * this.speed * deltaSeconds
     }
 
-    const margin = this.radius
-    nextX = Math.max(margin, Math.min(arenaWidth - margin, nextX))
-    nextY = Math.max(margin, Math.min(arenaHeight - margin, nextY))
+    if (arenaWidth < 1e6) {
+      const margin = this.radius
+      nextX = Math.max(margin, Math.min(arenaWidth - margin, nextX))
+      nextY = Math.max(margin, Math.min(arenaHeight - margin, nextY))
+    }
 
     obstacles.forEach((obs) => {
       const dist = Math.hypot(nextX - obs.x, nextY - obs.y)
@@ -93,6 +96,7 @@ export class ShooterEnemy extends Ship {
         damage: DEFAULT_BALANCE_CONFIG.shooter.projectileDamage,
         lifetime: DEFAULT_BALANCE_CONFIG.shooter.projectileLifetime,
         owner: 'enemy',
+        sourceVariant: this.variant,
       })
     }
 

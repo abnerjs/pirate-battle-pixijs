@@ -6,6 +6,7 @@ export interface ShipOptions {
   rotation?: number
   maxHp: number
   shipTexturePath: string
+  variant?: number
   isPlayer?: boolean
 }
 
@@ -13,7 +14,9 @@ export class Ship {
   public container: Container
   public sprite: Sprite
   public healthBarContainer: Container
-  public healthFillGraphics: Graphics
+  public healthBarFrameSprite!: Sprite
+  public healthBarFillSprite!: Sprite
+  public healthBarMask!: Graphics
   public fireSprite: Sprite | null = null
 
   public x: number
@@ -24,6 +27,11 @@ export class Ship {
   public radius = 28
   public isPlayer: boolean
   public isDestroyed = false
+  public isDead = false
+
+  public variant = 1
+  public hits = 0
+  public damageState = 1 // n in {1, 2, 3, 4}
 
   constructor(options: ShipOptions) {
     this.x = options.x
@@ -33,18 +41,24 @@ export class Ship {
     this.hp = options.maxHp
     this.isPlayer = !!options.isPlayer
 
+    // Extract variant (1..4) from options or texture path
+    const optionVariant = options.variant
+    if (optionVariant && optionVariant >= 1 && optionVariant <= 4) {
+      this.variant = optionVariant
+    } else {
+      const match = options.shipTexturePath.match(/ship_(\d+)/)
+      if (match) {
+        const num = Number.parseInt(match[1], 10)
+        this.variant = ((num - 1) % 4) + 1
+      }
+    }
+
     this.container = new Container()
     this.container.x = this.x
     this.container.y = this.y
 
-    let texture: Texture
-    try {
-      texture = Texture.from(options.shipTexturePath)
-    } catch (_e) {
-      texture = Texture.from('/assets/png/default/ships/ship_1.png')
-    }
-
-    this.sprite = new Sprite(texture)
+    const initialTex = this.getTextureForState(1)
+    this.sprite = new Sprite(initialTex)
     this.sprite.anchor.set(0.5, 0.5)
     this.sprite.rotation = this.rotation + Math.PI
     this.container.addChild(this.sprite)
@@ -53,66 +67,163 @@ export class Ship {
     this.healthBarContainer = new Container()
     this.healthBarContainer.y = -45
 
-    const bgGraphics = new Graphics()
-    bgGraphics.rect(-24, -4, 48, 8)
-    bgGraphics.fill({ color: 0x000000, alpha: 0.75 })
-    bgGraphics.stroke({ color: 0x334155, width: 1 })
-    this.healthBarContainer.addChild(bgGraphics)
-
-    this.healthFillGraphics = new Graphics()
-    this.healthBarContainer.addChild(this.healthFillGraphics)
-
     if (!this.isPlayer) {
+      const frameTex = this.getEnemyHealthTexture('enemy_health_frame.png')
+      const fillTex = this.getEnemyHealthTexture('enemy_health_fill_red.png')
+
+      this.healthBarFrameSprite = new Sprite(frameTex)
+      this.healthBarFrameSprite.anchor.set(0.5, 0.5)
+      this.healthBarFrameSprite.x = 0
+      this.healthBarFrameSprite.y = 0
+      this.healthBarFrameSprite.scale.set(0.35, 0.35)
+
+      this.healthBarFillSprite = new Sprite(fillTex)
+      this.healthBarFillSprite.anchor.set(0.5, 0.5)
+      this.healthBarFillSprite.x = 0
+      this.healthBarFillSprite.y = 0
+      this.healthBarFillSprite.zIndex = 10
+      this.healthBarFillSprite.scale.set(0.35, 0.35)
+
+      this.healthBarMask = new Graphics()
+      this.healthBarFillSprite.mask = this.healthBarMask
+
+      this.healthBarContainer.addChild(this.healthBarFrameSprite)
+      this.healthBarContainer.addChild(this.healthBarFillSprite)
+
       this.container.addChild(this.healthBarContainer)
       this.updateHealthBar()
     }
   }
 
-  public updateHealthBar() {
-    this.healthFillGraphics.clear()
-
-    const hpRatio = Math.max(0, Math.min(1, this.hp / this.maxHp))
-    if (hpRatio <= 0) return
-
-    const fillWidth = Math.floor(46 * hpRatio)
-    let fillColor = 0x10b981
-    if (hpRatio <= 0.25) {
-      fillColor = 0xef4444
-    } else if (hpRatio <= 0.5) {
-      fillColor = 0xf59e0b
-    }
-
-    this.healthFillGraphics.rect(-23, -3, fillWidth, 6)
-    this.healthFillGraphics.fill({ color: fillColor })
-
-    if (hpRatio < 0.5 && !this.fireSprite) {
+  private getEnemyHealthTexture(fileName: string): Texture {
+    try {
+      return Texture.from(`/assets/png/retina/ui/hud/${fileName}`)
+    } catch (_e) {
       try {
-        const fireTex = Texture.from('/assets/png/default/effects/fire_1.png')
-        this.fireSprite = new Sprite(fireTex)
-        this.fireSprite.anchor.set(0.5, 0.5)
-        this.fireSprite.scale.set(0.6)
-        this.fireSprite.y = 10
-        this.container.addChild(this.fireSprite)
-      } catch (_e) {
-        // Optional fire sprite
+        return Texture.from(`/assets/png/default/ui/hud/${fileName}`)
+      } catch (_e2) {
+        return Texture.EMPTY
       }
     }
   }
 
-  public takeDamage(amount: number): boolean {
-    if (this.isDestroyed) return false
+  /**
+   * Calculates ship texture index according to f(n) = 6n - 5 for variant V (1..4)
+   * n = 1: 0 hits (no damage)
+   * n = 2: 1 hit
+   * n = 3: 2 hits
+   * n = 4: 4 hits / dead (0 HP, stops moving)
+   */
+  public getTextureForState(n: number): Texture {
+    const shipIdx = this.variant - 1 + (6 * n - 5)
+    try {
+      return Texture.from(`/assets/png/retina/ships/ship_${shipIdx}.png`)
+    } catch (_e) {
+      try {
+        return Texture.from(`/assets/png/default/ships/ship_${shipIdx}.png`)
+      } catch (_e2) {
+        return Texture.from('/assets/png/default/ships/ship_1.png')
+      }
+    }
+  }
 
+  public updateShipState() {
+    const damageRatio = 1 - Math.max(0, Math.min(1, this.hp / this.maxHp))
+
+    if (this.hp <= 0 || damageRatio >= 0.99) {
+      this.damageState = 4 // 100% damage / 0 HP (sunk, stops moving)
+      this.hp = 0
+      this.isDead = true
+      this.isDestroyed = true
+    } else if (damageRatio >= 0.5) {
+      this.damageState = 3 // 50% or more damage
+    } else if (damageRatio >= 0.25) {
+      this.damageState = 2 // 25% or more damage
+    } else {
+      this.damageState = 1 // 0% damage (intact, full HP)
+    }
+
+    this.sprite.texture = this.getTextureForState(this.damageState)
+  }
+
+  public updateHealthBar() {
+    if (!this.healthBarContainer || this.isPlayer) return
+
+    const hpRatio = Math.max(0, Math.min(1, this.hp / this.maxHp))
+    if (hpRatio <= 0 || this.isDead || this.isDestroyed) {
+      this.healthBarContainer.visible = false
+      return
+    }
+    this.healthBarContainer.visible = true
+
+    const fillWidth = 56 * hpRatio
+
+    this.healthBarMask.clear()
+    if (fillWidth > 0) {
+      this.healthBarMask.rect(-28, -10, fillWidth, 20)
+      this.healthBarMask.fill(0xffffff)
+    }
+  }
+
+  public fireAnimTimer = 0
+
+  public updateFireEffect(deltaSeconds: number) {
+    if (this.isDead || this.isDestroyed || this.damageState !== 3) {
+      if (this.fireSprite) {
+        this.fireSprite.visible = false
+      }
+      return
+    }
+
+    if (!this.fireSprite) {
+      try {
+        const fireTex = Texture.from('/assets/png/default/effects/fire_1.png')
+        this.fireSprite = new Sprite(fireTex)
+        this.fireSprite.anchor.set(0.5, 0.85)
+        this.container.addChild(this.fireSprite)
+      } catch (_e) {
+        return
+      }
+    }
+
+    this.fireSprite.visible = true
+    this.fireAnimTimer += deltaSeconds
+
+    // Alternates between fire_1.png and fire_2.png
+    const frame = (Math.floor(this.fireAnimTimer * 7) % 2) + 1
+    try {
+      this.fireSprite.texture = Texture.from(`/assets/png/default/effects/fire_${frame}.png`)
+    } catch (_e) {
+      // Fallback
+    }
+
+    // Position on flag/stern at the rear of the ship
+    const sternDist = -20
+    this.fireSprite.x = Math.sin(this.rotation) * sternDist
+    this.fireSprite.y = -Math.cos(this.rotation) * sternDist
+    this.fireSprite.rotation = this.rotation
+
+    // Light pulse animation (scale and alpha)
+    const scalePulse = 0.55 + Math.sin(this.fireAnimTimer * 6) * 0.08
+    const alphaPulse = 0.8 + Math.sin(this.fireAnimTimer * 4) * 0.2
+
+    this.fireSprite.scale.set(scalePulse)
+    this.fireSprite.alpha = Math.max(0.2, Math.min(1.0, alphaPulse))
+  }
+
+  public takeDamage(amount: number): boolean {
+    if (this.isDestroyed || this.isDead) return false
+
+    this.hits += 1
     this.hp = Math.max(0, this.hp - amount)
     this.updateHealthBar()
+    this.updateShipState()
 
-    if (this.hp <= 0) {
-      this.isDestroyed = true
-      return true
-    }
-    return false
+    return this.isDead
   }
 
   public setPosition(x: number, y: number) {
+    if (this.isDead) return
     this.x = x
     this.y = y
     this.container.x = x
@@ -120,12 +231,14 @@ export class Ship {
   }
 
   public setRotation(angle: number) {
+    if (this.isDead) return
     this.rotation = angle
     this.sprite.rotation = angle + Math.PI
   }
 
   public destroy(parentContainer: Container) {
     this.isDestroyed = true
+    this.isDead = true
     parentContainer.removeChild(this.container)
     this.container.destroy({ children: true })
   }

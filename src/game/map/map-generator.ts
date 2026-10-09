@@ -17,16 +17,63 @@ export interface MapData {
 
 type IslandType = 'sand' | 'grass'
 
-interface IslandShape {
+interface ProceduralIsland {
   type: IslandType
-  // Matrix pattern relative to startC, startR where 1 = land, 0 = water
   pattern: number[][]
   startC: number
   startR: number
   specialEdgeTile?: number
 }
 
-export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData {
+/**
+ * Procedurally generates a thick, non-rectangular island shape pattern
+ * Enforces a minimum thickness of 2+ tiles everywhere, preventing 1-tile narrow strips or ring holes.
+ */
+function generateProceduralIslandPattern(type: IslandType): number[][] {
+  const isSand = type === 'sand'
+  const w = isSand ? 3 + Math.floor(Math.random() * 3) : 5 + Math.floor(Math.random() * 3) // Sand: 3-5, Grass: 5-7
+  const h = isSand ? 3 + Math.floor(Math.random() * 3) : 4 + Math.floor(Math.random() * 3) // Sand: 3-5, Grass: 4-6
+
+  // Start with a solid block pattern
+  const pattern: number[][] = Array.from({ length: h }, () => Array(w).fill(1))
+
+  // Procedurally carve a solid corner step if pattern is large enough (w >= 4 and h >= 4)
+  if (w >= 4 && h >= 4 && Math.random() < 0.75) {
+    const carveW = 2 + (w >= 6 ? Math.floor(Math.random() * 2) : 0)
+    const carveH = 2 + (h >= 5 ? Math.floor(Math.random() * 2) : 0)
+    const corner = Math.floor(Math.random() * 4) // 0: TR, 1: BR, 2: BL, 3: TL
+
+    if (corner === 0) {
+      for (let r = 0; r < carveH; r++) {
+        for (let c = w - carveW; c < w; c++) {
+          pattern[r][c] = 0
+        }
+      }
+    } else if (corner === 1) {
+      for (let r = h - carveH; r < h; r++) {
+        for (let c = w - carveW; c < w; c++) {
+          pattern[r][c] = 0
+        }
+      }
+    } else if (corner === 2) {
+      for (let r = h - carveH; r < h; r++) {
+        for (let c = 0; c < carveW; c++) {
+          pattern[r][c] = 0
+        }
+      }
+    } else {
+      for (let r = 0; r < carveH; r++) {
+        for (let c = 0; c < carveW; c++) {
+          pattern[r][c] = 0
+        }
+      }
+    }
+  }
+
+  return pattern
+}
+
+export function generateMap(width = 4800, height = 3600, tileSize = 128): MapData {
   const container = new Container()
   container.label = 'MapContainer'
 
@@ -44,120 +91,113 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
   const waterTexture = getTileTexture(73)
   const obstacles: IslandObstacle[] = []
 
-  // 1. Water Background Layer
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
+  // 1. Layer 1: Water Background Layer (Base ocean water tile_73 scaled 2x to 256px across whole arena)
+  const oceanTileSize = tileSize * 2 // 256px
+  const oceanCols = Math.ceil(width / oceanTileSize)
+  const oceanRows = Math.ceil(height / oceanTileSize)
+
+  for (let r = 0; r < oceanRows; r++) {
+    for (let c = 0; c < oceanCols; c++) {
       const waterSprite = new Sprite(waterTexture)
-      waterSprite.x = c * tileSize
-      waterSprite.y = r * tileSize
-      waterSprite.width = tileSize
-      waterSprite.height = tileSize
+      waterSprite.x = c * oceanTileSize
+      waterSprite.y = r * oceanTileSize
+      waterSprite.width = oceanTileSize
+      waterSprite.height = oceanTileSize
       container.addChild(waterSprite)
     }
   }
 
-  // 2. Define Custom Non-Rectangular Islands (L-shaped, U-shaped, irregular polygons)
-  const islandShapes: IslandShape[] = [
-    // Island 1: L-Shaped Sand Island (West) - Smaller than grass islands
-    {
-      type: 'sand',
-      startC: 4,
-      startR: 5,
-      specialEdgeTile: 81,
-      pattern: [
-        [1, 1, 1, 1],
-        [1, 1, 1, 1],
-        [1, 1, 0, 0],
-        [1, 1, 0, 0],
-      ],
-    },
-    // Island 2: L-Shaped Grass Island (North-East) - Larger island
-    {
-      type: 'grass',
-      startC: 22,
-      startR: 3,
-      specialEdgeTile: 84,
-      pattern: [
-        [1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 0, 0, 0, 0],
-        [1, 1, 1, 0, 0, 0, 0],
-        [1, 1, 1, 0, 0, 0, 0],
-      ],
-    },
-    // Island 3: U-Shaped Lagoon Grass Island (South-East)
-    {
-      type: 'grass',
-      startC: 19,
-      startR: 16,
-      specialEdgeTile: 82,
-      pattern: [
-        [1, 1, 1, 1, 1, 1],
-        [1, 1, 0, 0, 1, 1],
-        [1, 1, 0, 0, 1, 1],
-        [1, 1, 1, 1, 1, 1],
-      ],
-    },
-    // Island 4: Small Irregular Sand Island (South-West)
-    {
-      type: 'sand',
-      startC: 5,
-      startR: 19,
-      specialEdgeTile: 83,
-      pattern: [
-        [1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 0],
-      ],
-    },
-    // Island 5: Irregular Sand Island (Center North)
-    {
-      type: 'sand',
-      startC: 15,
-      startR: 4,
-      specialEdgeTile: 85,
-      pattern: [
-        [0, 1, 1, 1],
-        [1, 1, 1, 1],
-        [1, 1, 1, 0],
-      ],
-    },
-    // Island 6: T-Shaped Grass Island (Center South)
-    {
-      type: 'grass',
-      startC: 11,
-      startR: 18,
-      specialEdgeTile: 86,
-      pattern: [
-        [1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1],
-        [0, 1, 1, 1, 0],
-        [0, 1, 1, 1, 0],
-      ],
-    },
-  ]
+  // 2. Procedurally Generate and Place Islands (Enforcing min 4-tile ocean gap constraint)
+  const getRandomChoice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
-  // Map tracking grid contents: null = water, { type, islandIndex } = land
   interface CellData {
     type: IslandType
     islandIndex: number
   }
   const grid: (CellData | null)[][] = Array.from({ length: rows }, () => Array(cols).fill(null))
-  const specialEdgeUsed: boolean[] = new Array(islandShapes.length).fill(false)
 
-  // Populate grid with island shapes
-  islandShapes.forEach((shape, idx) => {
-    const pRows = shape.pattern.length
-    const pCols = shape.pattern[0].length
+  const islandShapes: ProceduralIsland[] = []
+  const specialSandTiles = [81, 83, 85]
+  const specialGrassTiles = [82, 84, 86]
 
-    for (let pr = 0; pr < pRows; pr++) {
-      for (let pc = 0; pc < pCols; pc++) {
-        if (shape.pattern[pr][pc] === 1) {
-          const r = shape.startR + pr
-          const c = shape.startC + pc
-          if (r >= 0 && r < rows && c >= 0 && c < cols) {
-            grid[r][c] = { type: shape.type, islandIndex: idx }
+  // Quadrant bounds for well-distributed procedural placement across 4800x3600 map
+  const placementZones = [
+    { minC: 3, maxC: 12, minR: 3, maxR: 11, type: 'sand' as IslandType },
+    { minC: 15, maxC: 22, minR: 3, maxR: 10, type: 'sand' as IslandType },
+    { minC: 24, maxC: 32, minR: 3, maxR: 12, type: 'grass' as IslandType },
+    { minC: 3, maxC: 12, minR: 16, maxR: 22, type: 'sand' as IslandType },
+    { minC: 13, maxC: 21, minR: 16, maxR: 22, type: 'grass' as IslandType },
+    { minC: 24, maxC: 31, minR: 16, maxR: 22, type: 'grass' as IslandType },
+  ]
+
+  placementZones.forEach((zone, islandIdx) => {
+    let placed = false
+    let attempts = 0
+
+    while (!placed && attempts < 30) {
+      attempts++
+      const pattern = generateProceduralIslandPattern(zone.type)
+      const pRows = pattern.length
+      const pCols = pattern[0].length
+
+      const maxStartC = Math.min(zone.maxC, cols - pCols - 2)
+      const maxStartR = Math.min(zone.maxR, rows - pRows - 2)
+      const minStartC = Math.max(zone.minC, 2)
+      const minStartR = Math.max(zone.minR, 2)
+
+      if (maxStartC < minStartC || maxStartR < minStartR) continue
+
+      const startC = minStartC + Math.floor(Math.random() * (maxStartC - minStartC + 1))
+      const startR = minStartR + Math.floor(Math.random() * (maxStartR - minStartR + 1))
+
+      // Validate strict 4-tile distance buffer from all previously placed islands
+      let validGap = true
+      for (let pr = 0; pr < pRows; pr++) {
+        for (let pc = 0; pc < pCols; pc++) {
+          if (pattern[pr][pc] === 1) {
+            const r = startR + pr
+            const c = startC + pc
+
+            for (let dr = -4; dr <= 4; dr++) {
+              for (let dc = -4; dc <= 4; dc++) {
+                const checkR = r + dr
+                const checkC = c + dc
+                if (checkR >= 0 && checkR < rows && checkC >= 0 && checkC < cols) {
+                  const existing = grid[checkR][checkC]
+                  if (existing && existing.islandIndex !== islandIdx) {
+                    validGap = false
+                    break
+                  }
+                }
+              }
+              if (!validGap) break
+            }
+          }
+          if (!validGap) break
+        }
+      }
+
+      if (validGap) {
+        placed = true
+        const specialEdgeTile = getRandomChoice(
+          zone.type === 'sand' ? specialSandTiles : specialGrassTiles,
+        )
+
+        islandShapes.push({
+          type: zone.type,
+          pattern,
+          startC,
+          startR,
+          specialEdgeTile,
+        })
+
+        for (let pr = 0; pr < pRows; pr++) {
+          for (let pc = 0; pc < pCols; pc++) {
+            if (pattern[pr][pc] === 1) {
+              const r = startR + pr
+              const c = startC + pc
+              grid[r][c] = { type: zone.type, islandIndex: islandIdx }
+            }
           }
         }
       }
@@ -169,16 +209,91 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
     return grid[r][c] !== null
   }
 
-  const getRandomChoice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
+  const specialEdgeUsed: boolean[] = new Array(islandShapes.length).fill(false)
 
-  // 3. Autotiling Logic with Inner Bends (Dobras de Canto 4, 5, 20, 21 for sand; 36, 37, 52, 53 for grass)
+  // 3. Layer 2: Submerged Island Base (Rendered under ENTIRE island and border ring)
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = grid[r][c]
+
+      if (cell) {
+        // Under ALL land cells: Render full submerged shallow water base (tile 27)
+        const subSprite = new Sprite(getTileTexture(27))
+        subSprite.x = c * tileSize
+        subSprite.y = r * tileSize
+        subSprite.width = tileSize
+        subSprite.height = tileSize
+        container.addChild(subSprite)
+      } else {
+        // Coastal water cells: Render submerged border tile ring
+        const N = isLand(r - 1, c)
+        const S = isLand(r + 1, c)
+        const W = isLand(r, c - 1)
+        const E = isLand(r, c + 1)
+
+        const NW = isLand(r - 1, c - 1)
+        const NE = isLand(r - 1, c + 1)
+        const SW = isLand(r + 1, c - 1)
+        const SE = isLand(r + 1, c + 1)
+
+        let submergedTileIdx: number | null = null
+        const cardinalCount = (N ? 1 : 0) + (S ? 1 : 0) + (W ? 1 : 0) + (E ? 1 : 0)
+
+        // 1. Full Submerged Water / Gulf / Cove
+        if (cardinalCount >= 3) {
+          submergedTileIdx = 27
+        }
+        // 2. Submerged Companion for Inner Land Bends
+        else if (S && E && SE) {
+          submergedTileIdx = 75 // Acompanha canto superior esquerdo de dobra
+        } else if (S && W && SW) {
+          submergedTileIdx = 74 // Acompanha canto superior direito de dobra
+        } else if (N && E && NE) {
+          submergedTileIdx = 59 // Acompanha canto inferior esquerdo de dobra
+        } else if (N && W && NW) {
+          submergedTileIdx = 58 // Acompanha canto inferior direito de dobra
+        }
+        // 3. Submerged Outer Corners
+        else if ((S && E) || (!N && !S && !W && !E && SE)) {
+          submergedTileIdx = 10 // Canto superior esquerdo submerso
+        } else if ((S && W) || (!N && !S && !W && !E && SW)) {
+          submergedTileIdx = 12 // Canto superior direito submerso
+        } else if ((N && E) || (!N && !S && !W && !E && NE)) {
+          submergedTileIdx = 42 // Canto inferior esquerdo submerso
+        } else if ((N && W) || (!N && !S && !W && !E && NW)) {
+          submergedTileIdx = 44 // Canto inferior direito submerso
+        }
+        // 4. Straight Submerged Edges
+        else if (S) {
+          submergedTileIdx = 11 // Borda superior submersa
+        } else if (N) {
+          submergedTileIdx = 43 // Borda inferior submersa
+        } else if (E) {
+          submergedTileIdx = 26 // Borda esquerda submersa
+        } else if (W) {
+          submergedTileIdx = 28 // Borda direita submersa
+        }
+
+        if (submergedTileIdx !== null) {
+          const subSprite = new Sprite(getTileTexture(submergedTileIdx))
+          subSprite.x = c * tileSize
+          subSprite.y = r * tileSize
+          subSprite.width = tileSize
+          subSprite.height = tileSize
+          container.addChild(subSprite)
+        }
+      }
+    }
+  }
+
+  // 4. Layer 3: Solid Land Tiles (Sand & Grass tiles)
   interface TileRenderInfo {
     r: number
     c: number
     tileIdx: number
     rotation: number
   }
-  const renderList: TileRenderInfo[] = []
+  const landRenderList: TileRenderInfo[] = []
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -187,9 +302,8 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
 
       const type = cell.type
       const islandIdx = cell.islandIndex
-      const specialTile = islandShapes[islandIdx].specialEdgeTile
+      const specialTile = islandShapes[islandIdx]?.specialEdgeTile
 
-      // 8-neighbor adjacency check
       const N = isLand(r - 1, c)
       const S = isLand(r + 1, c)
       const W = isLand(r, c - 1)
@@ -205,17 +319,16 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
 
       if (type === 'sand') {
         // --- SAND ISLAND AUTOTILING ---
-        // A. Outer Convex Corners
         if (!N && !W) {
-          tileIdx = 1 // Top-left corner
+          tileIdx = 1 // Top-left outer corner
         } else if (!N && !E) {
-          tileIdx = 3 // Top-right corner
+          tileIdx = 3 // Top-right outer corner
         } else if (!S && !W) {
-          tileIdx = 33 // Bottom-left corner
+          tileIdx = 33 // Bottom-left outer corner
         } else if (!S && !E) {
-          tileIdx = 35 // Bottom-right corner
+          tileIdx = 35 // Bottom-right outer corner
         }
-        // B. Inner Concave Corners (Dobras de Canto)
+        // Inner Concave Corners (Dobras de Canto)
         else if (S && E && !SE) {
           tileIdx = 4 // Canto inferior direito de dobra de areia
         } else if (S && W && !SW) {
@@ -225,7 +338,7 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
         } else if (N && W && !NW) {
           tileIdx = 21 // Canto superior esquerdo de dobra de areia
         }
-        // C. Straight Outer Edges
+        // Straight Outer Edges
         else if (!N) {
           if (specialTile && !specialEdgeUsed[islandIdx] && Math.random() < 0.35) {
             tileIdx = specialTile
@@ -259,7 +372,7 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
             tileIdx = 19 // Right edge
           }
         }
-        // D. Inner Sand Fill
+        // Inner Sand Fill
         else {
           const rand = Math.random()
           if (rand < 0.2) {
@@ -270,17 +383,16 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
         }
       } else {
         // --- GRASS ISLAND AUTOTILING ---
-        // A. Outer Convex Corners
         if (!N && !W) {
-          tileIdx = 6 // Top-left corner grass
+          tileIdx = 6 // Top-left outer corner grass
         } else if (!N && !E) {
-          tileIdx = 9 // Top-right corner grass
+          tileIdx = 9 // Top-right outer corner grass
         } else if (!S && !W) {
-          tileIdx = 54 // Bottom-left corner grass
+          tileIdx = 54 // Bottom-left outer corner grass
         } else if (!S && !E) {
-          tileIdx = 57 // Bottom-right corner grass
+          tileIdx = 57 // Bottom-right outer corner grass
         }
-        // B. Inner Concave Corners (Dobras de Canto)
+        // Inner Concave Corners (Dobras de Canto)
         else if (S && E && !SE) {
           tileIdx = 36 // Canto inferior direito de dobra da ilha com grama
         } else if (S && W && !SW) {
@@ -290,7 +402,7 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
         } else if (N && W && !NW) {
           tileIdx = 53 // Canto superior esquerdo de dobra da ilha com grama
         }
-        // C. Straight Outer Edges
+        // Straight Outer Edges
         else if (!N) {
           if (specialTile && !specialEdgeUsed[islandIdx] && Math.random() < 0.35) {
             tileIdx = specialTile
@@ -324,7 +436,7 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
             tileIdx = getRandomChoice([25, 41]) // Right edge grass
           }
         }
-        // D. Inner Grass Fill
+        // Inner Grass Fill
         else {
           const rand = Math.random()
           if (rand < 0.25) {
@@ -337,9 +449,9 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
         }
       }
 
-      renderList.push({ r, c, tileIdx, rotation })
+      landRenderList.push({ r, c, tileIdx, rotation })
 
-      // Register obstacle circle for physics & ship collisions
+      // Register obstacle circle for solid land physics & ship collisions
       obstacles.push({
         x: c * tileSize + tileSize / 2,
         y: r * tileSize + tileSize / 2,
@@ -348,8 +460,8 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
     }
   }
 
-  // 4. Render Sprites from renderList
-  renderList.forEach((item) => {
+  // Render all land sprites on top of submerged base layer
+  landRenderList.forEach((item) => {
     const posX = item.c * tileSize
     const posY = item.r * tileSize
 
@@ -370,20 +482,20 @@ export function generateMap(width = 2400, height = 1800, tileSize = 64): MapData
     container.addChild(sprite)
   })
 
-  // Safe Player Spawn (Center open water)
+  // Safe Dynamic Player Spawn (Center open water)
   const playerSpawn = {
     x: width * 0.5,
     y: height * 0.5,
   }
 
-  // Safe Enemy Spawns (Open water corners & edges)
+  // Safe Dynamic Enemy Spawns (Open water corners & edges)
   const enemySpawns = [
-    { x: 300, y: 300 },
-    { x: width - 300, y: 300 },
-    { x: 300, y: height - 300 },
-    { x: width - 300, y: height - 300 },
-    { x: width * 0.5, y: 200 },
-    { x: width * 0.5, y: height - 200 },
+    { x: 400, y: 400 },
+    { x: width - 400, y: 400 },
+    { x: 400, y: height - 400 },
+    { x: width - 400, y: height - 400 },
+    { x: width * 0.5, y: 300 },
+    { x: width * 0.5, y: height - 300 },
   ]
 
   return {

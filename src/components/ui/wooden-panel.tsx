@@ -20,12 +20,12 @@ export const WoodenPanel: React.FC<WoodenPanelProps> = ({
         className,
       )}
     >
-      {/* 9-Slice Background Frame Asset (112px slices for corners & borders, scaled proportionally for smaller heights) */}
+      {/* 9-Slice Background Frame Asset (Responsive borderWidth on mobile to eliminate huge lateral padding) */}
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={{
           borderStyle: 'solid',
-          borderWidth: '112px',
+          borderWidth: 'clamp(32px, 8vw, 112px)',
           borderImageSource: "url('/assets/png/default/ui/menu/panel_menu.png')",
           borderImageSlice: '112 fill',
           borderImageRepeat: 'stretch',
@@ -33,7 +33,7 @@ export const WoodenPanel: React.FC<WoodenPanelProps> = ({
       />
 
       {/* Content Container Inside 9-Slice Frame */}
-      <div className="relative z-10 w-full flex flex-col justify-between items-center text-center p-6 sm:p-8 space-y-4">
+      <div className="relative z-10 w-full flex flex-col justify-between items-center text-center p-3 sm:p-8 space-y-3 sm:space-y-4">
         {children}
       </div>
     </div>

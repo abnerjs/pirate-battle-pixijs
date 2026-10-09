@@ -33,7 +33,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame }) => {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden select-none font-sans bg-slate-950 flex flex-col items-center justify-center">
-      {/* 1. Base Layer: Scene Background Asset - ui_scene_background.png for a while */}
+      {/* 1. Base Layer: Scene Background Asset */}
       <img
         src="/assets/ui_scene_background.png"
         alt="Scene Background"
